@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: b2c-cost-calculator
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 4 -b 0.0.0.0:$PORT app:app
+    healthCheckPath: /
+    autoDeploy: true

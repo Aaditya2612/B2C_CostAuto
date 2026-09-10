@@ -1,0 +1,121 @@
+
+COL Ecom Express
+    'REST_OF_INDIA_REST_OF_STATE' 144636
+    'INTRA_REGION_REST_OF_STATE' 47212
+    'REST_OF_INDIA_REST_OF_STATE_CDL' 31070
+    'REST_OF_INDIA_UPCOUNTRY' 23796
+    'NORTH_EAST_REST_OF_STATE' 21948
+    'REST_OF_INDIA_MAIN' 20100
+    'NA' 16178
+    'INTRA_STATE_REST_OF_STATE' 13852
+    'INTRA_REGION_REST_OF_STATE_CDL' 12895
+    'INTRA_REGION_UPCOUNTRY' 7482
+    'INTRA_REGION_MAIN' 5932
+    'NORTH_EAST_UPCOUNTRY' 5908
+    'NORTH_EAST_REST_OF_STATE_CDL' 4629
+    'NORTH_EAST_MAIN' 4463
+    'INTRA_STATE_REST_OF_STATE_CDL' 2904
+    'INTRA_STATE_UPCOUNTRY' 1691
+    'REST_OF_INDIA_UPCOUNTRY_CDL' 1352
+    'METRO' 1278
+    'INTRA_STATE_MAIN' 1050
+    'REST_OF_INDIA_MAIN_CDL' 1042
+    'JNK_UPCOUNTRY' 858
+    'JNK_REST_OF_STATE' 664
+    'INTRA_CITY' 620
+    'JNK_MAIN' 469
+    'INTRA_REGION_UPCOUNTRY_CDL' 453
+    'INTRA_REGION_MAIN_CDL' 353
+    'NORTH_EAST_UPCOUNTRY_CDL' 240
+    'NORTH_EAST_MAIN_CDL' 237
+    'JNK_UPCOUNTRY_CDL' 174
+    'JNK_REST_OF_STATE_CDL' 108
+    '0x2a' 104
+    'INTRA_STATE_UPCOUNTRY_CDL' 98
+    'INTRA_STATE_MAIN_CDL' 77
+    'INTRA_CITY_CDL' 63
+    'METRO_CDL' 49
+    'JNK_MAIN_CDL' 42
+    None 22
+COL Delhivery
+    'D2' 129551
+    'D1' 113928
+    'B' 45562
+    'E' 39031
+    'NA' 35026
+    'C2' 4777
+    'C1' 2235
+    'A' 1611
+    'F' 1490
+    'B_SPL' 827
+    '0x2a' 8
+    None 3
+COL Delhivery_MM
+    '0x2a' 370049
+    'A' 2819
+    'B' 1159
+    None 22
+COL Shadowfax
+    'ROI' 177861
+    'NA' 80594
+    'Special Zone' 73868
+    'Within Zone' 16030
+    'Intrastate' 15476
+    'Metro' 3568
+    'Special Zone ' 3288
+    'Within Zone ' 1788
+    'Intracity' 1445
+    '0x2a' 104
+    None 17
+    'METRO' 7
+    'Regional' 3
+COL Bluedart Plus
+    '0x2a' 213001
+    'ROI' 111660
+    'Intra Region' 41151
+    'NE/JNK' 6112
+    'Metro' 1495
+    'Intra City' 609
+    None 21
+COL DTDC
+    '0x2a' 192271
+    'ROI-B' 82622
+    'ZONE' 37487
+    'ROI-A' 26400
+    'METRO' 12784
+    'REGION' 12579
+    'SPECIAL DESTINATION' 5249
+    'RUR' 3724
+    'INCITY' 910
+    None 21
+    'ROI' 2
+COL Velocity Express
+    '0x2a' 371999
+    'Intrastate' 1351
+    'Local' 389
+    'Regional' 288
+    None 22
+COL Delhivery_NDD
+    '0x2a' 369274
+    'B' 4752
+    None 18
+    'A' 5
+COL Ekart
+    '0x2a' 199883
+    'ROI' 122712
+    'Zonal' 42911
+    'NEJK' 4191
+    'METRO' 3246
+    'LOCAL' 923
+    'Metro' 154
+    None 19
+    'Local' 7
+    'NE J&K' 3
+COL Amazon
+    '0x2a' 359858
+    'Regional' 12066
+    'Local' 979
+    'National' 644
+    'Remote' 415
+    'Metro' 72
+    None 15

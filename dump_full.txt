@@ -1,0 +1,157 @@
+SHEETS: ['Amazon', 'Bluedart', 'Delhivery', 'DTDC', 'Ekart', 'Elastic Run', 'Shadowfax', 'Velocity Express', 'WH Details', 'Carrier List', 'Billing Zone Mapping', 'Actual Zone Name']
+
+==============================================================================================================
+### SHEET: Delhivery  max_row=930 max_col=23
+==============================================================================================================
+[C1]W.E.F. 01-02-2024 | [P1]W.E.F. 01-07-2024 | [Q1]Delhivery Express
+[C2]Surface
+[C3]Movement | [D3]L wt | [E3]U wt | [F3]Addl | [G3]A | [H3]B | [I3]C1 | [J3]C2 | [K3]D1 | [L3]D2 | [M3]E | [N3]F | [Q3]Slab | [R3]A | [S3]B | [T3]C | [U3]D | [V3]E | [W3]F
+[C4]Fwd | [D4]0 | [E4]250 | [F4]250 | [G4]X | [H4]Y | [I4]55 | [J4]55 | [K4]65 | [L4]65 | [M4]85 | [N4]92 | [P4]Fwd | [Q4]0 - 500 | [R4]X | [S4]Y | [T4]90 | [U4]90 | [V4]90 | [W4]90
+[C5]Fwd | [D5]250 | [E5]1000 | [F5]250 | [G5]0 | [H5]0 | [I5]0 | [J5]0 | [K5]0 | [L5]0 | [M5]0 | [N5]0 | [Q5]additional 500 | [R5]0 | [S5]0 | [T5]0 | [U5]0 | [V5]0 | [W5]0
+[C6]Fwd | [D6]1000 | [F6]1000 | [G6]0 | [H6]0 | [I6]0 | [J6]0 | [K6]0 | [L6]0 | [M6]0 | [N6]0 | [P6]RTO | [Q6]0 - 500 | [R6]0 | [S6]0 | [T6]0 | [U6]0 | [V6]0 | [W6]0
+[C7]RTO | [D7]0 | [E7]250 | [F7]250 | [G7]0 | [H7]0 | [I7]0 | [J7]0 | [K7]0 | [L7]0 | [M7]0 | [N7]0 | [Q7]additional 500 | [R7]0 | [S7]0 | [T7]0 | [U7]0 | [V7]0 | [W7]0
+[C8]RTO | [D8]250 | [E8]1000 | [F8]250 | [G8]0 | [H8]0 | [I8]0 | [J8]0 | [K8]0 | [L8]0 | [M8]0 | [N8]0 | [P8]DTO | [Q8]0 - 500 | [R8]44 | [S8]44 | [T8]45 | [U8]45 | [V8]45 | [W8]45
+[C9]RTO | [D9]1000 | [F9]1000 | [G9]0 | [H9]0 | [I9]0 | [J9]0 | [K9]0 | [L9]0 | [M9]0 | [N9]0 | [Q9]additional 500 | [R9]40 | [S9]45 | [T9]45 | [U9]45 | [V9]45 | [W9]45
+[C10]DTO | [D10]0 | [E10]500 | [F10]500 | [G10]44 | [H10]44 | [I10]55.7 | [J10]55.7 | [K10]64.7 | [L10]64.7 | [M10]70 | [N10]74
+[C11]DTO | [D11]500 | [F11]500 | [G11]40 | [H11]40 | [I11]53.7 | [J11]53.7 | [K11]62.7 | [L11]62.7 | [M11]68 | [N11]71 | [Q11]Monthly Vol Slab | [R11]A | [S11]B
+[C12]COD | [D12]0 | [Q12]<1 Lakh | [R12]Existing Rate Card
+[C13]DISCOUNT | [D13]0 | [Q13]1-3 Lakh | [R13]X=35 | [S13]Y = 42
+[Q14]>=3 Lakh | [R14]X=31 | [S14]Y=38.5
+[C15]Discount Structure | [I15]w.e.f. 01-05-2024 | [L15]w.e.f. May-2026
+[C16]Vol Slab | [E16]A | [F16]B | [G16]Rest | [I16]Guwahati | [L16]Delhivery NDD | [P16]Ask Logistics Procurement team before 
+sharing this data to anyone.
+
+Highly Confidential
+[C17]<1 Lakh | [E17]Existing Rate Card, Table B | [I17]B_SPL | [L17]Fwd | [M17]A | [N17]33
+[C18]1-3 Lakh | [E18]X=35 | [F18]Y=42 | [G18]No Change | [I18]42/- per shipment | [L18]Fwd | [M18]B | [N18]42
+[C19]>=3 Lakh | [E19]X=31 | [F19]Y=38.5 | [G19]No Change | [L19]Delhivery SDD
+[L20]Fwd | [M20]A | [N20]35
+
+==============================================================================================================
+### SHEET: Bluedart  max_row=1001 max_col=26
+==============================================================================================================
+[A1]l
+[B2]Dart Plus Rates | [C2]Same City | [D2]Same Region | [E2]Metro | [F2]Rest of India | [G2]NE/JNK
+[B3]First 1kg slab | [C3]21.5 | [D3]30 | [E3]40 | [F3]43 | [G3]46
+[B4]Every Additional 500 grams | [C4]5 | [D4]7 | [E4]13 | [F4]18 | [G4]21
+[B5]Fuel Surcharge | [C5]Nil
+[B6]Currency Adjustment Factor | [C6]Nil
+[B7]Cash on Delivery Charges | [C7]1.2% of collectible amount or INR 15 whichever is higher
+[B8]RTO rates | [C8]70% of Forward Rates
+[B9]Minimum Chargeable weight slab | [C9]1kg
+[B10]Over and above the proposed commercials, the below volume discounts would be applied.
+[B11]Volume Discounts on B2C shipments received monthly
+[B12]Up to 1,50,000 shipments | [C12]Nil Discount
+[B13]1,50,001 to 3,00,000 shipments | [C13]0.025
+[B14]3,00,001 to 4,50,000 shipments | [C14]0.05
+[B15]4,50,001 to 7,50,000 shipments | [C15]0.075
+[B16]7,50,001 and above shipments | [C16]0.1
+[B17]Please note the following:
+[B18]Rates exclude GST or any Government imposed fees.
+[B19]Rates would be valid till 31st of Dec 2025.
+[B20]Volume discounts proposed would be applicable only on Freight, Fuel Surcharge and Currency Adjustment Factor and not on COD charges
+[B21]Dead weight or volumetric weight whichever is higher would be considered for billing.
+[B22]Vol weight divisor – LXBXH in cms / 5000
+
+==============================================================================================================
+### SHEET: DTDC  max_row=9 max_col=9
+==============================================================================================================
+[B3]w.e.f. 21st May 25
+[B5]Category | [C5]A-Intracity | [D5]Region | [E5]B-Within Zone | [F5]C-Metro | [G5]A-ROI | [H5]ROI-B | [I5]E-Special Zone
+[B6]First 5,000 gms | [C6]34.9 | [D6]34.9 | [E6]34.9 | [F6]34.9 | [G6]34.9 | [H6]34.9 | [I6]34.9
+[B7]Additional 1,000 gms | [C7]0 | [D7]0 | [E7]0 | [F7]0 | [G7]0 | [H7]0 | [I7]0
+[B9]DTDC QUIK  & DTDC SDD | [C9]FOR SILIGURI DS MFC LOCATION RATE IS 40 RUPEES FROM FEB 2026
+
+==============================================================================================================
+### SHEET: Ekart  max_row=1000 max_col=27
+==============================================================================================================
+[B1]Base rates
+[B2]Weight | [C2]Local | [D2]Zonal | [E2]Metro Std | [F2]ROI Std | [G2]NE J&K Std | [I2]Terms and Conditions
+[B3]0-5 Kgs | [C3]41 | [D3]41 | [E3]41 | [F3]41 | [G3]41 | [I3]Base rates are inclusive of forward, COD & RTO charges
+[B4]500 gms thereafter | [C4]7 | [D4]7 | [E4]7 | [F4]7 | [G4]7 | [I4]Rates are charged on Chargeable Weight
+[I5]Chargeable Weight: Dead Weight or Volumetric Weight (whichever is higher) captured at EKL facility.
+[B6]RVP | [I6]Volumetric Weight: LBH/5000
+[B7]Weight | [C7]Local | [D7]Zonal | [E7]Metro Std | [F7]ROI Std | [G7]NE J&K Std | [I7]CGST, SGST / IGST and any other applicable taxes will be charged over and above at actuals
+[B8]0-5 Kgs | [E8]FWD + 50 | [I8]In case of QC failure at customer doorstep leading to cancellation of reverse pickup, RVP surcharge of ₹50 will be applied
+[B9]500 gms thereafter | [I9]First 2 Months, Max Liability: Min of ₹5000 or the invoice declared value or the COD amount to be collected at the time of delivery (whichever is lesser)
+[I10]From 3rd Month, Max Liability: Min of ₹3000 or the invoice declared value or the COD amount to be collected at the time of delivery (whichever is lesser)
+[B11]Local | [C11]Intracity
+[B12]Zonal | [C12]North, East, West & South
+[B13]Metro | [C13]CH/MUM/DEL/KOL/BLR/HYD/PUNE/AMH
+[B14]ROI | [C14]Rest of India excl. NE, JK
+[B15]NE J&K | [C15]NE, JK
+[B18]Volume based discounts
+[B19]Monthly Picked Volume | [C19]RPS(<=5kgs) | [D19]RPS(>5Kgs) | [E19]Period
+[B20]>=1,50,000 | [C20]₹38 | [D20]₹38+₹7/500gms | [E20]May'26 & Jun'26
+[B21]>=3,00,000 | [C21]₹37 | [D21]₹37+₹7/500gms | [E21]May'26 & Jun'26
+[B22]>=2,00,000 | [C22]₹38 | [D22]₹38+₹7/500gms | [E22]From Jul'26 onwards
+[B23]>=4,00,000 | [C23]₹37 | [D23]₹37+₹7/500gms | [E23]From Jul'26 onwards
+
+==============================================================================================================
+### SHEET: Shadowfax  max_row=41 max_col=14
+==============================================================================================================
+[B1]W.E.F 01-06-2025
+[I2]Ask Logistics Procurement team before 
+sharing this data to anyone.
+
+Highly Confidential
+[B3]Category | [C3]A
+ Intracity | [D3]B1
+ Within state / Intrastate | [E3]B2
+ Within Zone/Regional | [F3]C
+ Metro/ROI/SZ | [G3]Kerala (Only LM)
+[B4]> 4 L shipments per month | [C4]33 | [D4]33.5 | [E4]36.5 | [F4]42.5 | [G4]31
+[B5]< 4 L shipments per month | [C5]33 | [D5]35.5 | [E5]38.5 | [F5]42.5 | [G5]31
+[B6]Additional Rs. 2.5 per shipment | [C6]For SFX MM in Kerala
+[I7]W.E.F 01-04-2025
+[I8]RVP with QC
+[I9]Zone | [J9]Local | [K9]Regional | [L9]Metro | [M9]ROI | [N9]SZ
+[I10]CPS | [J10]35 | [K10]50 | [L10]60 | [M10]80 | [N10]90
+[I11]QC Charges- Rs. 15 per shipment (pass or fail)
+[I12]Maximum Liability- Rs. 5,000/-
+ (for RVP lost shipments)
+[I13]RVP QC Max. Liability- 20% of invoice value
+
+==============================================================================================================
+### SHEET: Velocity Express  max_row=8 max_col=3
+==============================================================================================================
+[B3]Zone | [C3]Final Commercial (incl Carrying Cost)
+[B4]Only LM | [C4]29
+[B5]Local | [C5]31
+[B6]Intrastate | [C6]36
+[B7]Intra Region | [C7]40
+
+==============================================================================================================
+### SHEET: Amazon  max_row=9 max_col=5
+==============================================================================================================
+[A1]CPS | [B1]Cumulative Disc | [C1]CPS Amazon Purposed | [D1]Amazon Proposal | [E1]Slab
+[A2]40 | [B2]0 | [C2]40 | [D2]0 | [E2]<2 lacs
+[A3]36 | [B3]0.1 | [C3]36 | [D3]0.1 | [E3]2-3 lacs
+[A4]35.2 | [B4]0.12 | [C4]35.6 | [D4]0.11 | [E4]3-4 lacs
+[A5]34.8 | [B5]0.13 | [C5]35.2 | [D5]0.12 | [E5]4-5 lacs
+[A6]34.4 | [B6]0.14 | [C6]34.8 | [D6]0.13 | [E6]>5 lacs
+[A7]2. Additional INR 15/Kg for additional 1kg above 2kg, discount slabs is applicable on additional per kg rates.
+[A8]3. First month we will count from go live date ( i.e. post successful integration and test shipments), Discount slabs will be applicable on 1.25L shipments in month1 (Go live date) and 2L shipments in month2 and maintained min 2L monthly vol post that.(Rephrasing : We will allocate 1.25L shipments in the first 30 days, with flat price of 36 applicable for this period)
+[A9]4. Aligned on 5k liability , subject to adherence of AOV Mix (+- 2% Above 2000 Rs Slab share)
+
+==============================================================================================================
+### SHEET: Elastic Run  max_row=23 max_col=7
+==============================================================================================================
+[B2]From 01-02-2025 | [C2]From 01-07-2025 | [D2]From 20-02-2026
+[B3]- Rate as 33 for volume <4000 | [C3]SDD | [D3]NDD - Regional
+[B4]- Rate as 32 for volume 4000 to 4500 | [C4]WH ID - 2, 4, 10, 12, 28 | [D4]- Rate as 40 per delivered order
+[B5]- Rate as 31 for volume >4500 | [C5]Rs. 37 per delivered order | [D5]- No return freight. Bill on only delivered shipments | [G5]2.5900000000000003
+[C6]MG - 60,000 per month | [G6]34.41
+[B7]Commercials are based on average of total month volume
+[B8]Avg. 3,000 orders per day -- Fix required
+[B12]Till 31-01-2025
+[B13]Only Last Mile (Kerala) | [C13]₹ 31/ Shipment
+[B15]WHID | [D15]Elastic Run | [E15]ER_SDD | [F15]ER_Quick | [G15]Rack
+[B16]2 | [C16]Manash Bhiwandi Ware House - FC | [D16]37 | [E16]NA | [F16]NA | [G16]NA
+[B17]4 | [C17]Manash Jamalpur Warehouse - FC | [D17]37 | [E17]NA | [F17]NA | [G17]NA
+[B18]12 | [C18]Manash Kolkata Warehouse - FC | [D18]37 | [E18]NA | [F18]NA | [G18]NA
+[B19]86 | [C19]DS_Ghaziabad | [D19]NA | [E19]39 | [F19]65 | [G19]18000
+[B20]6021 | [C20]DS_Sewri_Mumbai | [D20]NA | [E20]39 | [F20]65 | [G20]24750
+[B21]6027 | [C21]DS_Okhala_Delhi | [D21]NA | [E21]39 | [F21]65 | [G21]18000
+[B22]6029 | [C22]DS_Noida_Sec_80_Uttar Pradesh	 | [D22]NA | [E22]39 | [F22]65 | [G22]18000
+[B23]6028 | [C23]DS_Thane_Maharashtra | [D23]NA | [E23]NA | [F23]65 | [G23]NA

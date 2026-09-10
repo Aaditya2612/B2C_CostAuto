@@ -1,0 +1,12 @@
+import json, sqlite3
+d = json.load(open('data/b2c_data.json', encoding='utf-8'))
+print('warehouses:', len(d['warehouses']))
+print('carriers:', [c['id'] for c in d['active_carriers']])
+print('billing mapping carriers:', sorted(d['billing_zone_mapping'].keys()))
+print('actual zones count:', len(d['actual_zone_name']))
+con = sqlite3.connect('data/lanes.db')
+print('DB lanes count:', con.execute('select count(*) from lanes').fetchone()[0])
+r = con.execute('select * from lanes where whid=? and pin=?', (2, 421302)).fetchone()
+print('sample lane 2_421302:', r)
+print('Velocity distinct:', con.execute('select distinct velocity from lanes where velocity is not null').fetchall())
+print('BOGA to check not-served count Ecom NA:', con.execute("select count(*) from lanes where ecom is null or ecom='NA'").fetchone())

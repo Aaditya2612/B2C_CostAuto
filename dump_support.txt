@@ -1,0 +1,244 @@
+### SHEET: WH Details  max_row=17 max_col=25
+--------------------------------------------------------------------------------------------------------------
+[A3]WH | [B3]State | [C3]GSTN | [D3]WHID | [E3]Billing Address/ Warehouse Address | [F3]Origin Pincode | [G3]WHID
+[A4]MUM | [B4]Maharashtra | [C4]27AARCM7004J1Z4 | [D4]2 | [E4]Manash Bhiwandi Ware House - FC Gala No. 7/8, Building No. C4, Angel Logistics Park, Off Mumbai-Agra Highway, Village Pimplas, Taluka Bhiwandi, Thane - 421311 | [F4]421311 | [G4]2
+[A5]GGN | [B5]Haryana | [C5]06AARCM7004J1Z8 | [D5]4 | [E5]Manash Jamalpur Warehouse - Khewat no.345/360, Satbir Logistics Park, Khentawas, Tehsil, Farukhnagar,Gurugram, Gurgaon, Haryana, 122506 | [F5]122506 | [G5]4
+[A6]BLR | [B6]Karnataka | [C6]29AARCM7004J1Z0 | [D6]10 | [E6]Manash Bangalore Warehouse - FC, Manash E-Commerce Pvt Ltd., Thonachinakuppe Village, Kasaba Hobli, Nelamangala Taluka, Bangalore Rural District, 562123 | [F6]562123 | [G6]10
+[A7]CCU | [B7]West Bengal | [C7]19AARCM7004J1Z1 | [D7]12 | [E7]Manash Kolkata Warehouse - Manash E-Commerce Pvt Ltd., Plot no 153/154/155/156, Sankrail Logistics Park, Village Bhagabatipur, NH6, Howrah, Kolkata 711313 | [F7]711313 | [G7]12
+[A8]GAU | [B8]Assam | [C8]18AARCM7004J1Z3 | [D8]16 | [E8]Manash E-Commerce Pvt Ltd.,Deusotal, Village Mikirpara Chokardoi, Mouza – Ramcharani, Pamohi, P.O Garchuk,
+ Guwahati, Dist. Kamrup (Metro), Assam– 781035 | [F8]781035 | [G8]16
+[A9]LKO | [B9]Uttar Pradesh | [C9]09AARCM7004J1Z2 | [D9]21 | [E9]Manash E-Commerce Pvt Ltd.,, Khasra number 645, Banthara, Sarojini nagar, Lucknow, Uttar Pradesh 226401 | [F9]226401 | [G9]21
+[A10]CHN | [B10]Tamil Nadu | [C10]33AARCM7004J1ZB | [D10]25 | [E10]Manash E-Commerce Pvt Ltd., Shed No: 116 To 120. No:2. College Road. Koluthuvanchery Village, Paraniputhur, Chennai - 600122 | [F10]600122 | [G10]25
+[A11]HYD | [B11]Telangana | [C11]36AARCM7004J1Z5 | [D11]28 | [E11]Manash E-Commerce Pvt Ltd., House No 2-136/3, Shamshabad Mandal, Rangareddy District, Gandiguda, Ghasmiyaguda Village, Hyderabad, Rangareddy, Telangana, 501218 | [F11]501218 | [G11]28
+[A12]COK | [B12]Kerala | [C12]32AARCM7004J1ZD | [D12]29 | [E12]Manash Kochi Warehouse - FC - Scinntc Pvt Ltd., Maniachery, Koovappady, Kunnathunad, Ernakulam, Kochi 683544, Kerala | [F12]683544 | [G12]29
+[A13]VGA | [B13]Andhra Pradesh | [C13]37AARCM7004J1Z3 | [D13]40 | [E13]Manash Vijayawada Warehouse - FC - Manash E-Commerce Pvt Ltd., R.S.No.169/2, D.No.13-101 Enikepadu, Anand motors road Vijayawada, Andhra Pradesh- 521108 | [F13]521108 | [G13]40
+[A14]CJB | [B14]Tamil Nadu | [C14]33AARCM7004J1ZB | [D14]42 | [E14]Manash Coimbatore Warehouse - FC - Manash E-Commerce Pvt Ltd.,, Door No.- 2/171/D-Itchikadu Paruvai Palladam, Tiruppur, District Coimbatore, India 641658 | [F14]641658 | [G14]42
+[A15]PAT | [B15]Bihar | [C15]10AARCM7004J1ZJ | [D15]45 | [E15]Manash Patna Warehouse - FC - Building No./Flat No.: Khata -167, Khesra- 1617 PO- Marchi, P.S by Pass, near Dharmshal More, Marchi Patna, Bihar, PIN- 800009 | [F15]800009 | [G15]45
+[A16]BBI | [B16]Odisha | [C16]21AARCM7004J1ZG | [D16]47 | [E16]Manash E-Commerce Pvt Ltd.,
+ Plot No. B1A,B2-B5,Food processing Park,Khurda Industrial Estate,Khurda,Dist. Khurda Odisha 752055. | [F16]752055 | [G16]47
+
+### SHEET: Carrier List  max_row=97 max_col=4
+--------------------------------------------------------------------------------------------------------------
+[B2]Carrier_ID | [C2]name | [D2]is_active
+[B3]1 | [C3]Aramex | [D3]False
+[B4]2 | [C4]DTDC | [D4]False
+[B5]3 | [C5]Delhivery Express | [D5]True
+[B6]4 | [C6]India Post | [D6]False
+[B7]5 | [C7]Self | [D7]False
+[B8]6 | [C8]Pick-up | [D8]False
+[B9]7 | [C9]Quantium | [D9]False
+[B10]8 | [C10]Blue Dart | [D10]False
+[B11]9 | [C11]Red Express | [D11]False
+[B12]10 | [C12]Javas | [D12]False
+[B13]11 | [C13]Javas(Delhi) | [D13]False
+[B14]12 | [C14]Ekart Logistics | [D14]False
+[B15]13 | [C15]Ecom Express | [D15]True
+[B16]14 | [C16]Javas (Bengaluru) | [D16]False
+[B17]15 | [C17]Fedex | [D17]False
+[B18]16 | [C18]Tanvi Express | [D18]False
+[B19]17 | [C19]Xpressbees | [D19]True
+[B20]18 | [C20]Xpressbees-Delhi | [D20]False
+[B21]19 | [C21]Wow Express | [D21]False
+[B22]20 | [C22]Holisol Logistics | [D22]False
+[B23]21 | [C23]Innovex Express | [D23]False
+[B24]22 | [C24]GoPigeon | [D24]False
+[B25]23 | [C25]Jagruti Transport | [D25]True
+[B26]24 | [C26]ShipDelight | [D26]False
+[B27]25 | [C27]ShadowFax | [D27]True
+[B28]26 | [C28]Delhivery | [D28]True
+[B29]27 | [C29]Wow Express - ROI | [D29]False
+[B30]28 | [C30]ShadowFax Express | [D30]False
+[B31]29 | [C31]Blue Dart Plus | [D31]False
+[B32]30 | [C32]Xpressbees Surface-Heavy | [D32]False
+[B33]31 | [C33]Rivigo | [D33]True
+[B34]32 | [C34]OMA Logistics | [D34]True
+[B35]33 | [C35]MAHARASHTRA HARYANA LOGISTICS | [D35]True
+[B36]34 | [C36]Xpressbees MO | [D36]False
+[B37]35 | [C37]Rapid Delivery | [D37]False
+[B38]36 | [C38]WHP logistics | [D38]True
+[B39]37 | [C39]Blue Dart AIR | [D39]False
+[B40]38 | [C40]ConnectIndia | [D40]False
+[B41]39 | [C41]Blue Dart MO | [D41]False
+[B42]40 | [C42]Online Express | [D42]False
+[B43]41 | [C43]Amaze Solutions | [D43]False
+[B44]42 | [C44]Delhivery HLD | [D44]False
+[B45]43 | [C45]Kerry Indev | [D45]False
+[B46]44 | [C46]Loadshare Express. | [D46]False
+[B47]45 | [C47]Udaan Express | [D47]False
+[B48]46 | [C48]Softage Express | [D48]False
+[B49]47 | [C49]Pidge Express | [D49]False
+[B50]49 | [C50]Bluedart Surface -Heavy | [D50]False
+[B51]50 | [C51]Blue Dart - Luxasia | [D51]False
+[B52]51 | [C52]Delhivery- Luxasia | [D52]False
+[B53]54 | [C53]Loadshare Networks | [D53]True
+[B54]55 | [C54]Pidge | [D54]False
+[B55]56 | [C55]CABT | [D55]False
+[B56]57 | [C56]Ruh India Logistics | [D56]False
+[B57]58 | [C57]Xpressbees Surface | [D57]False
+[B58]59 | [C58]Bluedart TIC | [D58]False
+[B59]60 | [C59]Pikndel | [D59]False
+[B60]61 | [C60]Xpressbees-NDD | [D60]False
+[B61]62 | [C61]Dependo Logistics | [D61]False
+[B62]63 | [C62]Delhivery Heavy | [D62]False
+[B63]64 | [C63]Wholemark | [D63]False
+[B64]65 | [C64]Xpressbees-SDD | [D64]False
+[B65]66 | [C65]Ecom SDD | [D65]True
+[B66]67 | [C66]XB IntraSDD | [D66]False
+[B67]68 | [C67]Dependo SDD | [D67]False
+[B68]69 | [C68]ShipDelight SDD | [D68]False
+[B69]70 | [C69]Shipyaari | [D69]True
+[B70]71 | [C70]Grow Simplee | [D70]True
+[B71]72 | [C71]Pico Xpress | [D71]True
+[B72]73 | [C72]B2C MP dummy carrier | [D72]False
+[B73]74 | [C73]ShadowFax_HyperLocal | [D73]True
+[B74]75 | [C74]Elastic Run | [D74]True
+[B75]76 | [C75]Zippee_Loginext | [D75]False
+[B76]77 | [C76]Grow Simplee_Hyperlocal | [D76]True
+[B77]78 | [C77]Pico Xpress_Hyperlocal | [D77]True
+[B78]79 | [C78]Delhivery_Hyperlocal | [D78]True
+[B79]80 | [C79]Kuik | [D79]True
+[B80]81 | [C80]Blitz_SDD | [D80]True
+[B81]82 | [C81]Pico_SDD | [D81]True
+[B82]83 | [C82]Delhivery_SDD | [D82]True
+[B83]84 | [C83]Kuik_SDD | [D83]True
+[B84]85 | [C84]ER_SDD | [D84]True
+[B85]86 | [C85]Kuik_loadshare_hyperlocal | [D85]True
+[B86]87 | [C86]Kuik_loadshare_SDD | [D86]True
+[B87]88 | [C87]Delhivery MM | [D87]True
+[B88]89 | [C88]ER_Quick | [D88]True
+[B89]90 | [C89]Velocity | [D89]True
+[B90]91 | [C90]Pikndel_Quick | [D90]True
+[B91]92 | [C91]DTDC QUIK | [D91]True
+[B92]93 | [C92]DTDC SDD | [D92]True
+[B93]94 | [C93]Inamo | [D93]True
+[B94]96 | [C94]AMAZON SERVICES | [D94]True
+[B95]99 | [C95]Delhivery_NDD | [D95]True
+[B96]100 | [C96]Pikndel B2C SDD | [D96]True
+[B97]101 | [C97]DELHIVERY SDD | [D97]True
+
+### SHEET: Billing Zone Mapping  max_row=79 max_col=6
+--------------------------------------------------------------------------------------------------------------
+[B1]System Zones | [C1]Carrier Name | [D1]Carrier Zones | [E1]System Zones
+[B2]Local | [C2]Ecom Express | [D2]INTRA_CITY | [E2]Local
+[B3]LocalSDL | [C3]Ecom Express | [D3]INTRA_CITY_CDL | [E3]LocalSDL
+[B4]WithinZones | [C4]Ecom Express | [D4]INTRA_STATE_MAIN | [E4]WithinZones
+[B5]WithinZones | [C5]Ecom Express | [D5]INTRA_STATE_UPCOUNTRY | [E5]WithinZones
+[B6]WithinZones | [C6]Ecom Express | [D6]INTRA_STATE_REST_OF_STATE | [E6]WithinZones
+[B7]WithinZonesROS | [C7]Ecom Express | [D7]INTRA_STATE_MAIN_CDL | [E7]WithinZonesROS
+[B8]WithinZonesROS | [C8]Ecom Express | [D8]INTRA_STATE_UPCOUNTRY_CDL | [E8]WithinZonesROS
+[B9]WithinZonesROS | [C9]Ecom Express | [D9]INTRA_STATE_REST_OF_STATE_CDL | [E9]WithinZonesROS
+[B10]Regional | [C10]Ecom Express | [D10]INTRA_REGION_MAIN | [E10]Regional
+[B11]Regional | [C11]Ecom Express | [D11]INTRA_REGION_UPCOUNTRY | [E11]Regional
+[B12]Regional | [C12]Ecom Express | [D12]INTRA_REGION_REST_OF_STATE | [E12]Regional
+[B13]RegionalSDL | [C13]Ecom Express | [D13]INTRA_REGION_MAIN_CDL | [E13]RegionalSDL
+[B14]RegionalSDL | [C14]Ecom Express | [D14]INTRA_REGION_UPCOUNTRY_CDL | [E14]RegionalSDL
+[B15]RegionalSDL | [C15]Ecom Express | [D15]INTRA_REGION_REST_OF_STATE_CDL | [E15]RegionalSDL
+[B16]Metro | [C16]Ecom Express | [D16]METRO | [E16]Metro
+[B17]MetroSDL | [C17]Ecom Express | [D17]METRO_CDL | [E17]MetroSDL
+[B18]ROI | [C18]Ecom Express | [D18]REST_OF_INDIA_MAIN | [E18]ROI
+[B19]ROI | [C19]Ecom Express | [D19]REST_OF_INDIA_UPCOUNTRY | [E19]ROI
+[B20]ROI | [C20]Ecom Express | [D20]REST_OF_INDIA_REST_OF_STATE | [E20]ROI
+[B21]ROISDL | [C21]Ecom Express | [D21]REST_OF_INDIA_MAIN_CDL | [E21]ROISDL
+[B22]ROISDL | [C22]Ecom Express | [D22]REST_OF_INDIA_UPCOUNTRY_CDL | [E22]ROISDL
+[B23]ROISDL | [C23]Ecom Express | [D23]REST_OF_INDIA_REST_OF_STATE_CDL | [E23]ROISDL
+[B24]Northeast | [C24]Ecom Express | [D24]NORTH_EAST_MAIN | [E24]Northeast
+[B25]Northeast | [C25]Ecom Express | [D25]NORTH_EAST_UPCOUNTRY | [E25]Northeast
+[B26]Northeast | [C26]Ecom Express | [D26]NORTH_EAST_REST_OF_STATE | [E26]Northeast
+[B27]NortheastSDL | [C27]Ecom Express | [D27]NORTH_EAST_MAIN_CDL | [E27]NortheastSDL
+[B28]NortheastSDL | [C28]Ecom Express | [D28]NORTH_EAST_UPCOUNTRY_CDL | [E28]NortheastSDL
+[B29]NortheastSDL | [C29]Ecom Express | [D29]NORTH_EAST_REST_OF_STATE_CDL | [E29]NortheastSDL
+[B30]JK | [C30]Ecom Express | [D30]JNK_MAIN | [E30]JK
+[B31]JK | [C31]Ecom Express | [D31]JNK_UPCOUNTRY | [E31]JK
+[B32]JK | [C32]Ecom Express | [D32]JNK_REST_OF_STATE | [E32]JK
+[B33]JKSDL | [C33]Ecom Express | [D33]JNK_MAIN_CDL | [E33]JKSDL
+[B34]JKSDL | [C34]Ecom Express | [D34]JNK_UPCOUNTRY_CDL | [E34]JKSDL
+[B35]JKSDL | [C35]Ecom Express | [D35]JNK_REST_OF_STATE_CDL | [E35]JKSDL
+[B36]A | [C36]Delhivery | [D36]A | [E36]A
+[B37]B | [C37]Delhivery | [D37]B | [E37]B
+[B38]C1 | [C38]Delhivery | [D38]C1 | [E38]C1
+[B39]C2 | [C39]Delhivery | [D39]C2 | [E39]C2
+[B40]D1 | [C40]Delhivery | [D40]D1 | [E40]D1
+[B41]D2 | [C41]Delhivery | [D41]D2 | [E41]D2
+[B42]E | [C42]Delhivery | [D42]E | [E42]E
+[B43]F | [C43]Delhivery | [D43]F | [E43]F
+[B44]B_SPL | [C44]Delhivery | [D44]B_SPL | [E44]B_SPL
+[B45]Local | [C45]Shadowfax | [D45]Intracity | [E45]Local
+[B46]Regional | [C46]Shadowfax | [D46]Within Zone | [E46]Regional
+[B47]Metro | [C47]Shadowfax | [D47]Metro | [E47]Metro
+[B48]ROI | [C48]Shadowfax | [D48]ROI | [E48]ROI
+[B49]Intrastate | [C49]Shadowfax | [D49]Intrastate | [E49]Intrastate
+[B50]Special Zone | [C50]Shadowfax | [D50]Special Zone | [E50]Special Zone
+[B51]Local | [C51]DTDC | [D51]INCITY | [E51]Local
+[B52]Regional | [C52]DTDC | [D52]REGION | [E52]Regional
+[B53]Regional | [C53]DTDC | [D53]ZONE | [E53]Regional
+[B54]Metro | [C54]DTDC | [D54]METRO | [E54]Metro
+[B55]ROI | [C55]DTDC | [D55]ROI-A | [E55]ROI
+[B56]ROI | [C56]DTDC | [D56]ROI-B | [E56]ROI
+[B57]Special Zone | [C57]DTDC | [D57]RUR | [E57]Special Zone
+[B58]Special Zone | [C58]DTDC | [D58]SPECIAL DESTINATION | [E58]Special Zone
+[B59]Intra city | [C59]Bluedart Plus | [D59]Intra city | [E59]Intra city
+[B60]Intra region | [C60]Bluedart Plus | [D60]Intra region | [E60]Intra region
+[B61]Metro | [C61]Bluedart Plus | [D61]Metro | [E61]Metro
+[B62]ROI | [C62]Bluedart Plus | [D62]ROI | [E62]ROI
+[B63]NE/JNK | [C63]Bluedart Plus | [D63]NE/JNK | [E63]NE/JNK
+[B64]Local | [C64]Velocity Express | [E64]Local
+[B65]Intrastate | [C65]Velocity Express | [E65]Intrastate
+[B66]Regional | [C66]Velocity Express | [E66]Regional
+[B67]Metro | [C67]Velocity Express | [E67]Metro
+[B68]ROI | [C68]Velocity Express | [E68]ROI
+[B69]Special Zone | [C69]Velocity Express | [E69]Special Zone
+[B70]Local | [C70]Ekart | [D70]LOCAL | [E70]Local
+[B71]Regional | [C71]Ekart | [E71]Zonal
+[B72]Metro Std | [C72]Ekart | [E72]Metro
+[B73]ROI | [C73]Ekart | [E73]ROI
+[B74]NEJK | [C74]Ekart | [E74]NE J&K
+[B75]Local | [C75]Amazon | [E75]Local
+[B76]Metro | [C76]Amazon | [E76]Metro
+[B77]Regional | [C77]Amazon | [E77]Regional | [F77] 
+[B78]National | [C78]Amazon | [E78]National
+[B79]Remote | [C79]Amazon | [E79]Remote
+
+### SHEET: Actual Zone Name  max_row=42 max_col=2
+--------------------------------------------------------------------------------------------------------------
+[A1]actual_zone | [B1]zone
+[A2]Local | [B2]Local
+[A3]WithinZones | [B3]Regional
+[A4]WithinZonesROS | [B4]Regional
+[A5]Regional | [B5]Regional
+[A6]A | [B6]Local
+[A7]B | [B7]Regional
+[A8]D1 | [B8]ROI
+[A9]B_SPL | [B9]Regional
+[A10]Special Zone | [B10]Special Zone
+[A11]E | [B11]Special Zone
+[A12]Intrastate | [B12]Regional
+[A13]JK | [B13]Special Zone
+[A14]F | [B14]Special Zone
+[A15]C1 | [B15]Metro
+[A16]ROI | [B16]ROI
+[A17]RegionalSDL | [B17]Regional
+[A18]Metro | [B18]Metro
+[A19]D2 | [B19]ROI
+[A20]ROISDL | [B20]ROI
+[A21]Northeast | [B21]Special Zone
+[A22]C2 | [B22]Metro
+[A23]A_MM | [B23]Local
+[A24]Local_MM | [B24]Local
+[A25]LocalSDL | [B25]Local
+[A26]JKSDL | [B26]Special Zone
+[A27]WithinZones_MM | [B27]Regional
+[A28]NortheastSDL | [B28]Special Zone
+[A29]Intra Region | [B29]Regional
+[A30]Intra city | [B30]Local
+[A31]Within Zone | [B31]Regional
+[A32]NE/JNK | [B32]Special Zone
+[A33]B_MM | [B33]Regional
+[A34]Intra region | [B34]Regional
+[A35]NE J&K Std | [B35]Special Zone
+[A36]ROI Std | [B36]ROI
+[A37]Zonal | [B37]Regional
+[A38]NE J&K | [B38]Special Zone
+[A39]Metro Std | [B39]Metro
+[A40]NEJK | [B40]Special Zone
+[A41]National | [B41]ROI
+[A42]Remote | [B42]Special Zone

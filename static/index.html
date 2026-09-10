@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>B2C Logistics Cost Calculator</title>
+<link rel="stylesheet" href="static/style.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><img src="static/purplle_icon.svg" alt="" /></div>
+      <h1>B2C Logistics Cost Calculator</h1>
+    </div>
+    <button id="assumptions-toggle" class="btn ghost" type="button">Assumptions &amp; notes</button>
+  </header>
+
+  <section class="controls">
+    <div class="row">
+      <label>Origin WH
+        <select id="wh" class="inp"></select>
+      </label>
+      <label>Destination Pincode
+        <input id="pin" class="inp" type="text" inputmode="numeric" placeholder="e.g. 421302" />
+      </label>
+      <label>Weight (kg)
+        <input id="weight" class="inp" type="number" step="0.001" min="0" value="0.5" />
+      </label>
+      <label>Movement
+        <select id="movement" class="inp"></select>
+      </label>
+    </div>
+    <div class="row ctrl">
+      <button id="load" class="btn primary" type="button">Load lane + Calculate</button>
+    </div>
+  </section>
+
+  <section id="volrow" class="volset">
+    <h2 class="volhead">Carrier settings <span class="volsub">(volume slab / service)</span></h2>
+    <div class="volgrid" id="volgrid"></div>
+  </section>
+
+  <section id="laneinfo" class="lane" hidden></section>
+
+  <section id="results" class="results" hidden>
+    <table>
+      <thead>
+        <tr>
+          <th>Carrier</th>
+          <th>Carrier Zone</th>
+          <th>Final Zone</th>
+          <th>Rate basis</th>
+          <th class="num">Cost (Rs)</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <p id="cheapest" class="cheapest"></p>
+  </section>
+
+  <section id="assumptions" class="notes" hidden>
+    <h3>Assumptions &amp; notes taken from the sheets</h3>
+    <ul>
+      <li>Only carriers that have a commercial sheet in the B2C workbook are quoted: Delhivery, Blue Dart (Dart Plus), DTDC, Ekart, Shadowfax, Velocity Express, Amazon, Elastic Run. The workbook's Carrier List flags are not used.</li>
+      <li>Delhivery Surface (W.E.F 01-02-2024): forward is a flat per-shipment rate (additional weight slabs are Rs 0 on the card). Zones A/B use X/Y, which depend on the monthly volume slab: 1-3 Lakh &rarr; X=35, Y=42; &ge;3 Lakh &rarr; X=31, Y=38.5. The &lt;1 Lakh slab says "Existing Rate Card, Table B", whose X/Y are not printed in the workbook, so A/B forward is not quoted for that slab &mdash; choose a higher slab to quote it. Zones C1&ndash;F are the same for every slab; RTO is Rs 0; DTO is first 500 g + add-on per 500 g; Guwahati B_SPL is Rs 42/shipment. The SDD/NDD entries on the sheet (Delhivery_MM / Delhivery_NDD columns) are separate products and not quoted.</li>
+      <li>Blue Dart (Dart Plus): min chargeable 1 kg; then every additional 500 g slab. RTO = 70% of forward rates. Volume discounts apply on freight. Cash-on-delivery fee (1.2% or min INR 15) is not included &mdash; it depends on the collectible amount, not on weight. Rates valid till 31-Dec-2025.</li>
+      <li>DTDC (w.e.f 21-May-2025): flat Rs 34.9 for first 5,000 g, additional 1,000 g at Rs 0, across all categories; forward movement only. A special "Siliguri DS MFC location Rs 40 (from Feb 2026)" note is not applied &mdash; no warehouse in the list is at Siliguri.</li>
+      <li>Ekart: base Rs 41 for 0&ndash;5 kg then Rs 7 per 500 g, inclusive of forward, COD &amp; RTO (no separate DTO). The volume-discount table from the sheet is selectable ("From Jul'26 onwards": &ge;2,00,000/mo Rs 38, &ge;4,00,000/mo Rs 37; the May'26&ndash;Jun'26 transitional numbers are noted in the sheet).</li>
+      <li>Shadowfax (W.E.F 01-06-2025): per-shipment by category (A Intracity, B1 Intrastate, B2 Within-zone/Regional, C Metro/ROI/SZ, Kerala LM). The &ge;4 L shipments/month tier applies discounted rates. The "+Rs 2.5/shipment for SFX MM in Kerala" and the separate "RVP with QC" reverse-pickup product are not modeled.</li>
+      <li>Velocity Express: per-shipment by zone &mdash; Only LM 29, Local 31, Intrastate 36, Intra Region 40 (incl. carrying cost).</li>
+      <li>Amazon: CPS per shipment plus cumulative monthly discount; add-on INR 15/kg for every full kg above 2 kg, with the same discount applied on the add-on rate.</li>
+      <li>Elastic Run: Rs 33/32/31 by average monthly volume; SDD at Rs 37 per delivered order for WH 2, 4, 10, 12, 28; NDD&ndash;Regional at Rs 40 per delivered order with no return freight.</li>
+      <li>Not-served lanes come from the Zone Master sentinels (NA / * / blank). The weight you enter is treated as the billing/chargeable weight &mdash; no volumetric (LBH/5000) conversion is applied.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <button id="rebuild" class="btn ghost small" type="button">Rebuild data from Excel</button>
+    <span id="buildstat"></span>
+  </footer>
+</div>
+<script src="static/app.js"></script>
+</body>
+</html>
