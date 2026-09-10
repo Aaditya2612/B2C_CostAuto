@@ -83,10 +83,10 @@ function renderCarrierOptions() {
       sv.className = "inp vol-sel";
       sv.dataset.carrier = "elastic";
       sv.dataset.kind = "service";
-      for (const s of ["standard", "ndd_regional"]) {
+      for (const s of ["standard", "sdd", "ndd_regional"]) {
         const o = document.createElement("option");
         o.value = s;
-        o.textContent = s === "standard" ? "Standard (33/32/31; SDD 37 for WH 2/4/10/12/28)" : "NDD Regional (Rs 40)";
+        o.textContent = s === "standard" ? "Auto (Local Rs 37 / Regional Rs 40)" : s === "sdd" ? "SDD Local (Rs 37)" : "NDD Regional (Rs 40)";
         sv.appendChild(o);
       }
       cell.appendChild(sv);

@@ -228,17 +228,58 @@ def price_amazon(zone, weight_kg, movement, vol_tier, params):
 
 # ---------------------------------------------------------------------------
 # Elastic Run
+# W.E.F 01-07-2025: SDD (local) Rs 37 / delivered order, WH 2, 4, 10, 12, 28.
+# W.E.F 20-02-2026: NDD - Regional Rs 40 / delivered order (no return freight,
+#                   bill on delivered shipments only).
+# The pre-2025 flat Rs 33/32/31 volume scheme is retired. Elastic Run has no
+# lane column in the zone master, so local vs regional is inferred from the
+# destination pin prefix against the warehouse SDD metro.
 # ---------------------------------------------------------------------------
-def price_elastic(zone, weight_kg, movement, vol_tier, params, whid, service="standard"):
+def price_elastic(zone, weight_kg, movement, vol_tier, params, whid, pin=None, service="standard"):
+    sdd_whs = params.get("wh_sdd_37_ids") or []
+    metro = params.get("metro_prefixes") or {}
+    whid = int(whid)
+
+    if service == "sdd":
+        if whid not in sdd_whs:
+            return None, (
+                f"No Elastic Run SDD (local) rate for WH {whid}"
+                f" (SDD WHs: {', '.join(map(str, sdd_whs))})"
+            )
+        return r2(params["sdd_rate"]), (
+            f"SDD (local) Rs {params['sdd_rate']} / delivered order "
+            f"(W.E.F 01-07-2025, WH {whid})"
+        )
+
     if service == "ndd_regional":
         return r2(params["ndd_regional"]), (
-            f"NDD - Regional: Rs {params['ndd_regional']} / delivered order "
-            "(w.e.f 20-02-2026); no return freight"
+            f"NDD - Regional Rs {params['ndd_regional']} / delivered order "
+            "(W.E.F 20-02-2026); no return freight, bill on delivered only"
         )
-    if whid in params["wh_sdd_37_ids"]:
-        return r2(params["sdd_rate"]), f"SDD Rs {params['sdd_rate']} / delivered order (WH {whid})"
-    rate = params["vol_rates"].get(vol_tier, 33.0)
-    return r2(rate), f"Flat Rs {rate} / shipment (avg monthly volume {vol_tier})"
+
+    # Default: auto local/regional from the destination pin (WH-based coverage).
+    if whid not in sdd_whs:
+        return None, (
+            f"Elastic Run has no rate scheme for WH {whid}"
+            f" (SDD WHs: {', '.join(map(str, sdd_whs))})"
+        )
+    local = False
+    rates = metro.get(whid) or metro.get(str(whid))
+    if rates and pin:
+        try:
+            local = int(str(int(pin))[:3]) in rates
+        except (TypeError, ValueError):
+            local = False
+    if local:
+        return r2(params["sdd_rate"]), (
+            f"SDD (local) Rs {params['sdd_rate']} / delivered order "
+            f"(W.E.F 01-07-2025, WH {whid}, dest {pin} in SDD metro)"
+        )
+    return r2(params["ndd_regional"]), (
+        f"NDD - Regional Rs {params['ndd_regional']} / delivered order "
+        f"(W.E.F 20-02-2026, WH {whid}, dest {pin} outside SDD metro); "
+        "no return freight, bill on delivered only"
+    )
 
 
 PRICERS = {
@@ -290,7 +331,8 @@ def quote_carrier(carrier, zone, weight_kg, movement, opts, data):
             break
     if carrier["id"] == "elastic":
         cost, detail = fn(zone, weight_kg, movement, vol_tier, params,
-                          whid=opts.get("whid"), service=opts.get("elastic_service", "standard"))
+                          whid=opts.get("whid"), pin=opts.get("pin"),
+                          service=opts.get("elastic_service", "standard"))
     else:
         cost, detail = fn(zone, weight_kg, movement, vol_tier, params)
     system_zone, final_zone = resolve_zones(carrier["id"], zone, data)

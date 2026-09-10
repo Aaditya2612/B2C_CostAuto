@@ -209,7 +209,7 @@ def quote():
                 "elastic": None,
             }
 
-    opts = {"whid": whid, "volume": volume, "elastic_service": elastic_service}
+    opts = {"whid": whid, "pin": pin, "volume": volume, "elastic_service": elastic_service}
     results = []
     for c in DATA["active_carriers"]:
         # Explicit override (incl. null = "force not served") wins over the lane default.

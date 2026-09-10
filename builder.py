@@ -349,15 +349,19 @@ PRICE_CARDS = {
         "note": "Additional INR 15/Kg billed per full kg above 2 kg.",
     },
     "elastic": {
-        "label": "Elastic Run",
-        "vol_rates": {  # avg monthly volume -> rate per shipment (From 01-02-2025)
-            "<4000": 33.0,
-            "4000-4500": 32.0,
-            ">4500": 31.0,
-        },
-        "sdd_rate": 37.0,                 # SDD Rs 37 per delivered order (From 01-07-2025)
+        "label": "Elastic Run (W.E.F 01-07-2025 / 20-02-2026)",
+        "sdd_rate": 37.0,                 # SDD (local): Rs 37 per delivered order, WH 2, 4, 10, 12, 28 (From 01-07-2025)
         "wh_sdd_37_ids": [2, 4, 10, 12, 28],
-        "ndd_regional": 40.0,              # NDD - Regional (From 20-02-2026), per delivered order
+        "ndd_regional": 40.0,              # NDD - Regional: Rs 40 per delivered order (From 20-02-2026); no return freight, bill on delivered only
+        # Local vs Regional is inferred from the destination pin prefix against the
+        # warehouse SDD metro (the zone master has NO Elastic Run column):
+        "metro_prefixes": {
+            2: [400, 401, 410, 421],       # Bhiwandi / Mumbai (origin 421311)
+            4: [110, 121, 122, 124, 131, 201],  # Gurugram / Delhi NCR (origin 122503)
+            10: [560, 561, 562, 563],      # Bengaluru (origin 562123)
+            12: [700, 711, 712, 713, 743], # Kolkata / Howrah / Hooghly / N 24 Pgs (origin 711313)
+            28: [500, 501, 502, 503, 505], # Hyderabad (origin 500037)
+        },
         "movements": ["Fwd"],             # NDD: "No return freight, bill on delivered shipments only"
     },
 }

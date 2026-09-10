@@ -52,7 +52,7 @@ def _quote(whid: int, pin: int, carrier, movement: str):
         zone = None
     res = pricing.quote_carrier(
         carrier, zone, QUOTE_WEIGHT, movement,
-        {"whid": whid, "volume": dict(DEFAULT_VOLUME), "elastic_service": "standard"},
+        {"whid": whid, "pin": pin, "volume": dict(DEFAULT_VOLUME), "elastic_service": "standard"},
         DATA,
     )
     return round(float(res["cost"]), 2) if res.get("cost") is not None else None

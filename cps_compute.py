@@ -24,7 +24,8 @@ freight_status         ok / machine-readable reason when calculated_freight is N
 Defaults used (same as the web app's out-of-the-box behaviour):
 * movement -> Fwd (RTO auto-detected from status columns)
 * volume tier -> each carrier's lowest tier (no monthly-volume discounts)
-* elastic service -> standard
+* elastic service -> standard == auto (local Rs 37 / regional Rs 40, only
+  for WH 2/4/10/12/28; other warehouses are not served -- matching the app)
 * Delhivery <1 Lakh forward is intentionally NOT quoted on A/B lanes
   (C1..F etc. still quote) -- identical to the app.
 """
@@ -225,7 +226,7 @@ def freight_for_row(carrier_id, whid, pin, weight_kg, movement):
             return None, None, "carrier not served on this lane", "no zone"
         zone = zones[col]
     carrier = {"id": carrier_id, "name": carrier_id}
-    opts = {"whid": whid, "volume": dict(DEFAULT_VOLUME), "elastic_service": "standard"}
+    opts = {"whid": whid, "pin": pin, "volume": dict(DEFAULT_VOLUME), "elastic_service": "standard"}
     try:
         res = pricing.quote_carrier(carrier, zone, weight_kg, movement, opts, _data())
     except Exception as exc:  # defensive: never break the whole export
