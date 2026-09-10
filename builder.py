@@ -30,7 +30,6 @@ ACTIVE_CARRIERS = [
     {"id": "dtdc", "name": "DTDC", "master_col": "DTDC", "sheet": "DTDC"},
     {"id": "ekart", "name": "Ekart", "master_col": "Ekart", "sheet": "Ekart"},
     {"id": "shadowfax", "name": "Shadowfax", "master_col": "Shadowfax", "sheet": "Shadowfax"},
-    {"id": "velocity", "name": "Velocity Express", "master_col": "Velocity Express", "sheet": "Velocity Express"},
     {"id": "amazon", "name": "Amazon", "master_col": "Amazon", "sheet": "Amazon"},
     {"id": "elastic", "name": "Elastic Run", "master_col": None, "sheet": "Elastic Run"},  # no lane zone column
 ]
@@ -313,18 +312,6 @@ PRICE_CARDS = {
         },
         "note": ("Sheet also lists a separate 'RVP with QC' product (reverse pickup) "
                  "with its own CPS + QC fee; modeled via the rvp block."),
-    },
-    "velocity": {
-        "label": "Velocity Express (incl carrying cost)",
-        "zones": ["Local", "Intrastate", "Regional", "Intra Region", "Only LM"],
-        "rates": {
-            "Only LM": 29.0,
-            "Local": 31.0,
-            "Intrastate": 36.0,
-            "Intra Region": 40.0,
-            "Regional": 40.0,
-        },
-        "movements": ["Fwd"],
     },
     "amazon": {
         "label": "Amazon CPS",

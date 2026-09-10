@@ -134,7 +134,7 @@ def lane_zones():
     con = _conn()
     row = con.execute(
         "SELECT origin_pin, city, state, lane, ecom, delhivery, delhivery_mm, shadowfax, "
-        "bluedart_plus, dtdc, velocity, delhivery_ndd, ekart, amazon "
+        "bluedart_plus, dtdc, delhivery_ndd, ekart, amazon "
         "FROM lanes WHERE whid=? AND pin=?",
         (whid, pin),
     ).fetchone()
@@ -143,7 +143,7 @@ def lane_zones():
         return jsonify({"found": False, "lane": {"whid": whid, "pin": pin}, "carriers": []})
 
     (origin_pin, city, state, lane, ecom, delhivery, delhivery_mm, shadowfax,
-     bluedart_plus, dtdc, velocity, delhivery_ndd, ekart, amazon) = row
+     bluedart_plus, dtdc, delhivery_ndd, ekart, amazon) = row
 
     master = {
         "delhivery": delhivery,
@@ -151,7 +151,6 @@ def lane_zones():
         "dtdc": dtdc,
         "ekart": ekart,
         "shadowfax": shadowfax,
-        "velocity": velocity,
         "amazon": amazon,
         "elastic": None,
     }
@@ -191,11 +190,14 @@ def quote():
     rec = None
     if whid and pin:
         con = _conn()
-        row = con.execute("SELECT * FROM lanes WHERE whid=? AND pin=?", (whid, pin)).fetchone()
+        row = con.execute(
+            "SELECT whid, origin_pin, pin, city, state, lane, ecom, delhivery, "
+            "delhivery_mm, shadowfax, bluedart_plus, dtdc, delhivery_ndd, ekart, amazon "
+            "FROM lanes WHERE whid=? AND pin=?", (whid, pin)).fetchone()
         con.close()
         if row:
             cols = ["whid", "origin_pin", "pin", "city", "state", "lane", "ecom", "delhivery",
-                    "delhivery_mm", "shadowfax", "bluedart_plus", "dtdc", "velocity",
+                    "delhivery_mm", "shadowfax", "bluedart_plus", "dtdc",
                     "delhivery_ndd", "ekart", "amazon"]
             rec = dict(zip(cols, row))
             default_zones = {
@@ -204,7 +206,6 @@ def quote():
                 "dtdc": rec["dtdc"],
                 "ekart": rec["ekart"],
                 "shadowfax": rec["shadowfax"],
-                "velocity": rec["velocity"],
                 "amazon": rec["amazon"],
                 "elastic": None,
             }

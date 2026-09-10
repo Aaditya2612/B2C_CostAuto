@@ -9,7 +9,6 @@ CARRIER_BILLING_NAME = {
     "dtdc": "dtdc",
     "ekart": "ekart",
     "shadowfax": "shadowfax",
-    "velocity": None,
     "amazon": None,
     "elastic": None,
 }
@@ -196,19 +195,6 @@ def price_shadowfax_rvp(zone, params):
 
 
 # ---------------------------------------------------------------------------
-# Velocity Express
-# ---------------------------------------------------------------------------
-def price_velocity(zone, weight_kg, movement, vol_tier, params):
-    for k in params["rates"]:
-        if k.lower() == (zone or "").lower() or (
-            zone and "regional" in k.lower() and "regional" in zone.lower()
-        ):
-            rate = params["rates"][k]
-            return r2(rate), f"Flat Rs {rate} / shipment ({k})"
-    return None, f"No Velocity Express rate for zone {zone!r}"
-
-
-# ---------------------------------------------------------------------------
 # Amazon CPS
 # ---------------------------------------------------------------------------
 def price_amazon(zone, weight_kg, movement, vol_tier, params):
@@ -288,7 +274,6 @@ PRICERS = {
     "dtdc": price_dtdc,
     "ekart": price_ekart,
     "shadowfax": price_shadowfax,
-    "velocity": price_velocity,
     "amazon": price_amazon,
     "elastic": price_elastic,
 }

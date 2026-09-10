@@ -58,7 +58,6 @@ LANE_COLUMN = {
     "dtdc": "dtdc",
     "ekart": "ekart",
     "shadowfax": "shadowfax",
-    "velocity": "velocity",
     "amazon": "amazon",
     "elastic": None,
 }
@@ -72,7 +71,6 @@ CARRIER_ALIASES = (
     ("dart plus", "bluedart"),
     ("dtdc", "dtdc"),
     ("shadowfax", "shadowfax"),
-    ("velocity", "velocity"),
     ("amazon", "amazon"),
     ("elastic", "elastic"),
 )
@@ -197,7 +195,7 @@ def _load_lanes():
         (r["whid"], r["pin"]): {key: r[key] for key in LANE_COLUMN.values() if key}
         for r in con.execute(
             "SELECT whid, pin, delhivery, bluedart_plus, dtdc, ekart, "
-            "shadowfax, velocity, amazon FROM lanes"
+            "shadowfax, amazon FROM lanes"
         )
     }
     con.close()
