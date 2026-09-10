@@ -30,6 +30,9 @@
       <label>Movement
         <select id="movement" class="inp"></select>
       </label>
+      <label class="chk">+ Shadowfax RVP
+        <input id="rvp" type="checkbox" title="Show Shadowfax 'RVP with QC' reverse-pickup quote for this lane" />
+      </label>
     </div>
     <div class="row ctrl">
       <button id="load" class="btn primary" type="button">Load lane + Calculate</button>
@@ -59,6 +62,8 @@
     <p id="cheapest" class="cheapest"></p>
   </section>
 
+  <section id="rvpquote" class="results rvp small" hidden></section>
+
   <section id="assumptions" class="notes" hidden>
     <h3>Assumptions &amp; notes taken from the sheets</h3>
     <ul>
@@ -67,7 +72,7 @@
       <li>Blue Dart (Dart Plus): min chargeable 1 kg; then every additional 500 g slab. RTO = 70% of forward rates. Volume discounts apply on freight. Cash-on-delivery fee (1.2% or min INR 15) is not included &mdash; it depends on the collectible amount, not on weight. Rates valid till 31-Dec-2025.</li>
       <li>DTDC (w.e.f 21-May-2025): flat Rs 34.9 for first 5,000 g, additional 1,000 g at Rs 0, across all categories; forward movement only. A special "Siliguri DS MFC location Rs 40 (from Feb 2026)" note is not applied &mdash; no warehouse in the list is at Siliguri.</li>
       <li>Ekart: base Rs 41 for 0&ndash;5 kg then Rs 7 per 500 g, inclusive of forward, COD &amp; RTO (no separate DTO). The volume-discount table from the sheet is selectable ("From Jul'26 onwards": &ge;2,00,000/mo Rs 38, &ge;4,00,000/mo Rs 37; the May'26&ndash;Jun'26 transitional numbers are noted in the sheet).</li>
-      <li>Shadowfax (W.E.F 01-06-2025): per-shipment by category (A Intracity, B1 Intrastate, B2 Within-zone/Regional, C Metro/ROI/SZ, Kerala LM). The &ge;4 L shipments/month tier applies discounted rates. The "+Rs 2.5/shipment for SFX MM in Kerala" and the separate "RVP with QC" reverse-pickup product are not modeled.</li>
+      <li>Shadowfax (W.E.F 01-06-2025): per-shipment by category (A Intracity, B1 Intrastate, B2 Within-zone/Regional, C Metro/ROI/SZ, Kerala LM). The &ge;4 L shipments/month tier applies discounted rates. The separate "RVP with QC" reverse-pickup product (W.E.F 01-04-2025) is quoted via the "+ Shadowfax RVP" checkbox: CPS by RVP category (Local 35 / Regional 50 / Metro 60 / ROI 80 / SZ 90) + QC Rs 15/shipment (pass or fail); RVP category is derived from the lane's Shadowfax forward zone (Intracity&rarr;Local, Intrastate/Within-Zone&rarr;Regional, Metro&rarr;Metro, ROI&rarr;ROI, Special Zone&rarr;SZ). Liability terms are informational (max Rs 5,000 on RVP lost shipments; RVP QC liability 20% of invoice value). The "+Rs 2.5/shipment for SFX MM in Kerala" is not modeled.</li>
       <li>Velocity Express: per-shipment by zone &mdash; Only LM 29, Local 31, Intrastate 36, Intra Region 40 (incl. carrying cost).</li>
       <li>Amazon: CPS per shipment plus cumulative monthly discount; add-on INR 15/kg for every full kg above 2 kg, with the same discount applied on the add-on rate.</li>
       <li>Elastic Run: Rs 33/32/31 by average monthly volume; SDD at Rs 37 per delivered order for WH 2, 4, 10, 12, 28; NDD&ndash;Regional at Rs 40 per delivered order with no return freight.</li>

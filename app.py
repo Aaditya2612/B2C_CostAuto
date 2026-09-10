@@ -1,15 +1,15 @@
 """B2C logistics cost web app."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
-import subprocess
 import sqlite3
 import sys
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from pricing import quote_carrier, resolve_zones, CARRIER_BILLING_NAME
+from pricing import quote_carrier, resolve_zones, CARRIER_BILLING_NAME, price_shadowfax_rvp
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT, "data")
@@ -35,6 +35,41 @@ MASTER_COL = DATA["master_col_by_id"]
 
 def _conn():
     return sqlite3.connect(LANES_DB)
+
+
+def _lanes_sha256():
+    h = hashlib.sha256()
+    with open(LANES_DB, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+LANES_SHA256 = _lanes_sha256()
+
+
+@app.route("/api/health")
+def health():
+    """Liveness + data fingerprint so a stale deploy is obvious."""
+    con = _conn()
+    rows = con.execute("SELECT COUNT(*) FROM lanes").fetchone()[0]
+    whids = [r[0] for r in con.execute("SELECT DISTINCT whid FROM lanes ORDER BY whid")]
+    max_pin = con.execute("SELECT MAX(pin) FROM lanes").fetchone()[0]
+    con.close()
+    return jsonify({
+        "status": "ok",
+        "lanes_db": {
+            "sha256": LANES_SHA256,
+            "rows": rows,
+            "whids": whids,
+            "max_pin": max_pin,
+        },
+        "b2c_data": {
+            "warehouses": len(DATA["warehouses"]),
+            "active_carriers": len(DATA["active_carriers"]),
+            "price_cards": len(DATA["price_cards"]),
+        },
+    })
 
 
 def _norm(v):
@@ -153,6 +188,7 @@ def quote():
 
     # Default zones from the lane master (unless user overrode them).
     default_zones = {}
+    rec = None
     if whid and pin:
         con = _conn()
         row = con.execute("SELECT * FROM lanes WHERE whid=? AND pin=?", (whid, pin)).fetchone()
@@ -184,7 +220,16 @@ def quote():
         results.append(quote_carrier(c, zone, weight, movement, opts, DATA))
     results = _sort_carriers(results)
     cheapest = next((c for c in results if c.get("cost") is not None), None)
-    return jsonify({"carriers": results, "cheapest": cheapest, "movement": movement})
+
+    # Optional Shadowfax RVP (reverse pickup) quote on the same lane.
+    rvp = None
+    if body.get("rvp") and rec:
+        zone = rec["shadowfax"]
+        cost, detail = price_shadowfax_rvp(zone, DATA["price_cards"]["shadowfax"])
+        rvp = {"served": cost is not None, "zone": zone, "cost": cost, "rate_basis": detail}
+
+    return jsonify({"carriers": results, "cheapest": cheapest,
+                    "movement": movement, "rvp": rvp})
 
 
 @app.route("/api/rebuild", methods=["POST"])

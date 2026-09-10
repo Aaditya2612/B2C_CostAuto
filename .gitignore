@@ -1,21 +1,8 @@
-# Python
 __pycache__/
-*.py[cod]
-.venv/
-venv/
-
-# Env / secrets
-.env
-.env.*
-
-# OS / editor
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-
-# Logs
+*.pyc
+bc_sales_export.csv
+bc_sales_export_with_cost.csv
+*.xlsb
+*.xlsx
+*.db
 *.log
-
-# Office lock files
-~$*

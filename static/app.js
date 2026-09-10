@@ -51,6 +51,7 @@ async function init() {
   $("rebuild").addEventListener("click", rebuild);
   $("assumptions-toggle").addEventListener("click", toggleAssumptions);
   $("movement").addEventListener("change", () => { if (quoted) requote(); });
+  $("rvp").addEventListener("change", () => { if (quoted) requote(); });
   $("weight").addEventListener("change", () => { if (quoted) requote(); });
   $("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
 }
@@ -158,6 +159,7 @@ async function requote() {
 
   const body = {
     whid, pin, weight_kg: weight, movement,
+    rvp: $("rvp").checked,
     zones: {},
     volume: {},
     elastic_service: carrierState.elastic.service || "standard",
@@ -321,6 +323,22 @@ function renderQuote(quote) {
     ch.classList.add("empty");
     ch.textContent = "No served carrier for this combination.";
   }
+  renderRvp(quote);
+}
+
+function renderRvp(quote) {
+  const host = $("rvpquote");
+  if (!quote.rvp || !quote.rvp.zone) { host.hidden = true; host.innerHTML = ""; return; }
+  const r = quote.rvp;
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="rvphead">Shadowfax <b>RVP with QC</b> (reverse pickup &mdash; W.E.F 01-04-2025)</div>
+    <div class="rvinf">
+      <span class="zbadge">${esc(r.zone)}</span>
+      <span class="${r.served ? "rvok" : "rvmiss"}">${r.served ? "&hearts; " + r.cost.toFixed(2) : "not quotable for this lane"}</span>
+    </div>
+    <div class="ratebasis${r.served ? "" : " notserved"}">${esc(r.rate_basis)}</div>
+  `;
 }
 
 async function rebuild() {

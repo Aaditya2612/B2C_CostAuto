@@ -291,7 +291,28 @@ PRICE_CARDS = {
         },
         "kerala_lm": 31.0,
         "movements": ["Fwd"],
-        "note": "Sheet also lists a separate 'RVP with QC' product (reverse pickup) with its own CPS; not a forward movement.",
+        "rvp": {
+            "label": "RVP with QC (W.E.F 01-04-2025) — reverse pickup",
+            # CPS per RVP category (reverse pickup; QC fee always applied)
+            "cps": {"Local": 35.0, "Regional": 50.0, "Metro": 60.0, "ROI": 80.0, "SZ": 90.0},
+            "qc": 15.0,
+            # lane's Shadowfax forward zone -> RVP category
+            "zone_map": {
+                "Intracity": "Local",
+                "Intrastate": "Regional",
+                "Within Zone": "Regional",
+                "Within zone": "Regional",
+                "Regional": "Regional",
+                "Metro": "Metro",
+                "ROI": "ROI",
+                "Special Zone": "SZ",
+            },
+            "liability_note": ("Max liability Rs 5,000/- for RVP lost shipments; "
+                                "RVP QC max liability 20% of invoice value"),
+            "note": "Reverse pickup only — not a forward movement.",
+        },
+        "note": ("Sheet also lists a separate 'RVP with QC' product (reverse pickup) "
+                 "with its own CPS + QC fee; modeled via the rvp block."),
     },
     "velocity": {
         "label": "Velocity Express (incl carrying cost)",

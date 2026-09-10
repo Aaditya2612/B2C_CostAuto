@@ -166,6 +166,35 @@ def price_shadowfax(zone, weight_kg, movement, vol_tier, params):
     return r2(rate), f"Flat Rs {rate} / shipment ({key}, {tier_label})"
 
 
+def price_shadowfax_rvp(zone, params):
+    """Shadowfax 'RVP with QC' (W.E.F 01-04-2025) — reverse pickup product.
+
+    CPS per RVP category (Local/Regional/Metro/ROI/SZ) plus a flat QC fee of
+    Rs 15 per shipment (pass or fail). Zone categories are derived from the
+    zone master's Shadowfax forward zone via params['rvp']['zone_map'].
+    Liability terms are informational only (not a charge).
+    """
+    rvp = params.get("rvp") or {}
+    zmap = rvp.get("zone_map") or {}
+    key = None
+    for k in zmap:
+        if k.lower() == (zone or "").lower():
+            key = k
+            break
+    if key is None:
+        return None, f"No RVP (reverse pickup) rate for Shadowfax zone {zone!r}"
+    cat = zmap[key]
+    cps = rvp.get("cps", {}).get(cat)
+    if cps is None:
+        return None, f"No RVP CPS for zone {cat!r}"
+    qc = rvp.get("qc", 0.0)
+    total = float(cps) + float(qc)
+    detail = f"RVP with QC (W.E.F 01-04-2025): CPS Rs {cps} ({cat}) + QC Rs {qc} = Rs {r2(total)}"
+    if rvp.get("liability_note"):
+        detail += "; " + rvp["liability_note"]
+    return r2(total), detail
+
+
 # ---------------------------------------------------------------------------
 # Velocity Express
 # ---------------------------------------------------------------------------
