@@ -94,7 +94,17 @@ function renderCarrierOptions() {
       continue;
     }
 
-    if (c.volume_options.length) {
+    if (c.id === "shadowfax") {
+      const chk = document.createElement("label");
+      chk.className = "chk rvp-sel";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = "rvp";
+      cb.title = "Quote Shadowfax 'RVP with QC' reverse-pickup for this lane";
+      chk.appendChild(cb);
+      chk.appendChild(document.createTextNode("RVP with QC (reverse pickup)"));
+      cell.appendChild(chk);
+    } else if (c.volume_options.length) {
       const s = document.createElement("select");
       s.className = "inp vol-sel";
       s.dataset.carrier = c.id;
@@ -292,16 +302,30 @@ function renderQuote(quote) {
     const basis = document.createElement("td");
     const box = document.createElement("div");
     box.className = "ratebasis";
-    if (c.served) {
+    if (!c.served) {
+      box.classList.add("notserved");
+      box.textContent = c.rate_basis || "not served";
+    } else {
       for (const ln of splitBasis(c.rate_basis)) {
         const d = document.createElement("div");
         d.className = "rb-line" + (ln.kind === "main" ? " rb-main" : ln.kind === "note" ? " rb-note" : " rb-sub");
         d.textContent = ln.text;
         box.appendChild(d);
       }
-    } else {
-      box.classList.add("notserved");
-      box.textContent = c.rate_basis || "not served";
+    }
+    if (c.id === "shadowfax" && quote.rvp && quote.rvp.zone) {
+      const rv = document.createElement("div");
+      rv.className = "rb-line rb-rvp";
+      if (quote.rvp.served) {
+        const rb = String(quote.rvp.rate_basis || "");
+        const mCps = rb.match(/CPS Rs ([\d.]+)/);
+        const mQc = rb.match(/QC Rs ([\d.]+)/);
+        const probe = mCps && mQc ? ` = CPS ${mCps[1]} + Rs ${mQc[1]} QC` : "";
+        rv.textContent = `Shadowfax RVP with QC (W.E.F 01-04-2025): Rs ${quote.rvp.cost.toFixed(2)} (${quote.rvp.zone})${probe}`;
+      } else {
+        rv.textContent = "Shadowfax RVP with QC: not quotable for this lane";
+      }
+      box.appendChild(rv);
     }
     basis.appendChild(box);
     tr.appendChild(basis);
@@ -323,22 +347,6 @@ function renderQuote(quote) {
     ch.classList.add("empty");
     ch.textContent = "No served carrier for this combination.";
   }
-  renderRvp(quote);
-}
-
-function renderRvp(quote) {
-  const host = $("rvpquote");
-  if (!quote.rvp || !quote.rvp.zone) { host.hidden = true; host.innerHTML = ""; return; }
-  const r = quote.rvp;
-  host.hidden = false;
-  host.innerHTML = `
-    <div class="rvphead">Shadowfax <b>RVP with QC</b> (reverse pickup &mdash; W.E.F 01-04-2025)</div>
-    <div class="rvinf">
-      <span class="zbadge">${esc(r.zone)}</span>
-      <span class="${r.served ? "rvok" : "rvmiss"}">${r.served ? "&hearts; " + r.cost.toFixed(2) : "not quotable for this lane"}</span>
-    </div>
-    <div class="ratebasis${r.served ? "" : " notserved"}">${esc(r.rate_basis)}</div>
-  `;
 }
 
 async function rebuild() {
