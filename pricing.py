@@ -47,7 +47,10 @@ def r2(x):
 
 
 def _grams(weight_kg):
-    return max(0, int(round(float(weight_kg) * 1000)))
+    try:
+        return max(0, int(round(float(weight_kg) * 1000)))
+    except (TypeError, ValueError):
+        return 0
 
 
 # ---------------------------------------------------------------------------
@@ -124,11 +127,38 @@ def price_bluedart(zone, weight_kg, movement, vol_tier, params):
 # ---------------------------------------------------------------------------
 # DTDC (w.e.f 21-May-25)
 # ---------------------------------------------------------------------------
-def price_dtdc(zone, weight_kg, movement, vol_tier, params):
-    return r2(params["first_5000g"]), (
-        f"Flat Rs {params['first_5000g']} per shipment (first 5000g); "
-        f"additional 1000g Rs {params['addl_1000g']}"
-    )
+def price_dtdc(zone, weight_kg, movement, vol_tier, params, whid=None, pin=None):
+    """DTDC: Rs X per shipment for the first 5000g, then Rs addl per additional
+    1000g (billed per started 1000g slab above 5000g).
+
+    Weight-aware and 0kg-safe: 0-5000g -> the flat first-5000g rate; above that
+    ceil((grams-5000)/1000) additional slabs are charged.
+
+    Siliguri DS special (W.E.F Feb 2026): for destination pins in the Siliguri
+    region (prefix 734) the DTDC QUIK & SDD rate is Rs 40 per shipment
+    (first 5000g) instead of the base first-5000g rate.
+    """
+    first = params["first_5000g"]
+    addl = params["addl_1000g"]
+    special = params.get("siliguri") or {}
+    rate_label = "DTDC"
+    if pin is not None:
+        try:
+            s = str(int(pin))
+            if len(s) == 6 and int(s[:3]) in (special.get("pin_prefixes") or []):
+                first = special["rate"]
+                rate_label = f"DTDC {special['label']}"
+        except (TypeError, ValueError):
+            pass
+    grams = _grams(weight_kg)
+    n_1000 = 0
+    if grams > 5000:
+        n_1000 = math.ceil((grams - 5000) / 1000.0)
+    total = first + n_1000 * addl
+    detail = f"{rate_label}: Rs {first} first 5000g"
+    if n_1000:
+        detail += f" + {n_1000}x Rs {addl}/additional 1000g (billed {grams} g)"
+    return r2(total), detail
 
 
 # ---------------------------------------------------------------------------
@@ -318,6 +348,9 @@ def quote_carrier(carrier, zone, weight_kg, movement, opts, data):
         cost, detail = fn(zone, weight_kg, movement, vol_tier, params,
                           whid=opts.get("whid"), pin=opts.get("pin"),
                           service=opts.get("elastic_service", "standard"))
+    elif carrier["id"] == "dtdc":
+        cost, detail = fn(zone, weight_kg, movement, vol_tier, params,
+                          whid=opts.get("whid"), pin=opts.get("pin"))
     else:
         cost, detail = fn(zone, weight_kg, movement, vol_tier, params)
     system_zone, final_zone = resolve_zones(carrier["id"], zone, data)

@@ -1,17 +1,4 @@
-"""Add cheapest-carrier shipping cost to bc_sales_export.csv.
 
-For each unique (warehouse_id, destination pincode) lane, quotes every
-rate-card carrier at 0.5 kg (web-app defaults, lowest volume tiers) and:
-  * shipping_cost      = lowest quote for that lane's movement
-  * shipping_carrier   = carrier that gave the lowest quote
-  * shipping_cost_note = why cost/carrier are blank (if not servicable)
-
-RTO rows (shipment_status=Returned / latest_secondary_status~RTO /
-rto_*_date present) are priced at RTO rates where a carrier prices RTO
-(Delhivery, Bluedart, Ekart); otherwise blank with a note.
-
-Output: bc_sales_export_with_cost.csv
-"""
 
 from __future__ import annotations
 
@@ -73,17 +60,23 @@ def _lane_quotes(whid: int, pin: int):
 
 
 def main():
+    print(f"Reading {SRC} ...", flush=True)
     df = pd.read_csv(SRC, low_memory=False)
+    print(f"Loaded {len(df):,} rows. Computing lane quotes ...", flush=True)
 
     lanes = (
         df.loc[df["warehouse_id"].isin(WHIDS), ["warehouse_id", "pincode"]]
         .drop_duplicates()
     )
     lane_fwd, lane_rto = {}, {}
-    for whid, pin in lanes.itertuples(index=False):
+    n_lanes = len(lanes)
+    for i, (whid, pin) in enumerate(lanes.itertuples(index=False), start=1):
         fwd, rto = _lane_quotes(int(whid), int(pin))
         lane_fwd[(int(whid), int(pin))] = _pick(fwd)
         lane_rto[(int(whid), int(pin))] = _pick(rto)
+        if i % 5000 == 0 or i == n_lanes:
+            print(f"  lanes priced: {i:,}/{n_lanes:,}", flush=True)
+    print("Applying lane costs to shipments ...", flush=True)
 
     rto_flag = (
         df["shipment_status"].astype(str).eq("Returned")
@@ -120,6 +113,7 @@ def main():
     df["shipping_carrier"] = carriers
     df["shipping_cost_note"] = notes
 
+    print("Writing CSV ...", flush=True)
     df.to_csv(OUT, index=False)
     priced = df["shipping_cost"].notna().sum()
     print(f"rows: {len(df):,}  priced: {priced:,} ({priced/len(df)*100:.1f}%)")
@@ -129,6 +123,15 @@ def main():
     print()
     print("carrier share of lowest:")
     print(df["shipping_carrier"].value_counts().to_string())
+    print()
+    print("Preview (top rows of the output dataframe):")
+    _cols = [
+        "order_id", "awb", "carrier_name", "warehouse_id", "warehouse_name",
+        "pincode", "shipment_status",
+        "shipping_cost", "shipping_carrier", "shipping_cost_note",
+    ]
+    show = [c for c in _cols if c in df.columns]
+    print(df[show].head(10).to_string(index=False), flush=True)
 
 
 if __name__ == "__main__":

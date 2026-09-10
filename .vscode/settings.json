@@ -1,0 +1,7 @@
+{
+  "python.analysis.extraPaths": [
+    "C:\\Users\\Administrator\\Documents\\0909costAuto",
+    "C:\\Users\\Administrator\\Documents\\0909costAuto\\pipeline"
+  ],
+  "python.analysis.typeCheckingMode": "basic"
+}

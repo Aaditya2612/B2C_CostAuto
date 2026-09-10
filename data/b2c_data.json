@@ -280,6 +280,13 @@
       ],
       "first_5000g": 34.9,
       "addl_1000g": 0.0,
+      "siliguri": {
+        "label": "Siliguri DS (QUIK & SDD, W.E.F Feb 2026)",
+        "rate": 40.0,
+        "pin_prefixes": [
+          734
+        ]
+      },
       "movements": [
         "Fwd"
       ]

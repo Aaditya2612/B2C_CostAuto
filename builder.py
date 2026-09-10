@@ -259,6 +259,11 @@ PRICE_CARDS = {
         "zones": ["A-Intracity", "Region", "B-Within Zone", "C-Metro", "A-ROI", "ROI-B", "E-Special Zone"],
         "first_5000g": 34.9,
         "addl_1000g": 0.0,
+        "siliguri": {
+            "label": "Siliguri DS (QUIK & SDD, W.E.F Feb 2026)",
+            "rate": 40.0,
+            "pin_prefixes": [734],   # destination pin prefix for the Siliguri region
+        },
         "movements": ["Fwd"],   # card quotes forward only (no RTO/DTO listed)
     },
     "ekart": {

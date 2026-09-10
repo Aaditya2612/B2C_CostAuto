@@ -15,6 +15,7 @@
 
 #%%
 import json
+import os
 import subprocess
 from datetime import datetime, timedelta
 import pandas as pd
@@ -198,7 +199,7 @@ def send_email(drive_link):
     from email.mime.text import MIMEText
 
     email_address = "dipanshu@purplle.com"
-    email_password = "cwwe rwex vbmj vozr"
+    email_password = os.getenv("SMTP_APP_PASSWORD", "")  # set on the server; never commit
     to_addresses = [
         "aditi.s@purplle.com",
         "subrat.d@purplle.com",
