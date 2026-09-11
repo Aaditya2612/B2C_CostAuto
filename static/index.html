@@ -60,8 +60,9 @@
         </label>
       </div>
       <div class="bvariant" id="bv_whs" hidden>
-        <label>Warehouses <span class="vsub">click to add / Ctrl-click to multi-select</span>
-          <select id="bwhs" class="inp multisel" multiple size="8"></select>
+        <label>Warehouses <span class="vsub">click a chip to toggle it on/off</span>
+          <div id="bwhs" class="whpick" role="group" aria-label="Warehouses"></div>
+          <span id="bwhs-count" class="whcount">0 selected</span>
         </label>
         <label>Destination pincode
           <input id="bpin" class="inp" type="text" inputmode="numeric" placeholder="e.g. 400607" />

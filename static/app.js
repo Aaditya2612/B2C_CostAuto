@@ -374,6 +374,7 @@ async function rebuild() {
 
 // ---------- bulk quote ----------
 let BULK = null; // last bulk response
+const bulkWhSel = new Set(); // warehouse ids toggled on in the chip picker
 
 const CARRIER_SHORT = {
   delhivery: "Delhivery", bluedart: "Bluedart", dtdc: "DTDC", ekart: "Ekart",
@@ -391,12 +392,30 @@ function buildBulk() {
   if (BOOT.warehouses.length) bwh.value = BOOT.warehouses[0].whid;
 
   const bwhs = $("bwhs");
+  const countEl = $("bwhs-count");
   for (const w of BOOT.warehouses) {
-    const o = document.createElement("option");
-    o.value = w.whid;
-    o.textContent = `${w.code} — WH ${w.whid} · ${w.state}`;
-    bwhs.appendChild(o);
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "whchip";
+    chip.dataset.whid = w.whid;
+    chip.setAttribute("aria-pressed", "false");
+    chip.title = `${w.code} — origin ${w.origin_pin} · ${w.state}`;
+    chip.textContent = `${w.code} · WH ${w.whid}`;
+    chip.addEventListener("click", () => {
+      const on = chip.classList.toggle("on");
+      chip.setAttribute("aria-pressed", on ? "true" : "false");
+      if (on) bulkWhSel.add(w.whid);
+      else bulkWhSel.delete(w.whid);
+      countEl.textContent = `${bulkWhSel.size} selected`;
+    });
+    bwhs.appendChild(chip);
   }
+  const updateCount = () => {
+    let n = 0;
+    bwhs.querySelectorAll(".whchip.on").forEach((c) => n++);
+    countEl.textContent = `${n} selected`;
+  };
+  updateCount();
   fillMovement($("bmovement"));
 }
 
@@ -433,9 +452,9 @@ function bulkPayload() {
     if (!body.pins.length) { alert("Enter at least one 6-digit pincode."); return null; }
   } else {
     body.pin = ($("bpin").value || "").replace(/[^0-9]/g, "");
-    body.whids = [...$("bwhs").selectedOptions].map((o) => parseInt(o.value, 10));
+    body.whids = [...bulkWhSel];
     if (!/^\d{6}$/.test(body.pin)) { alert("Enter one 6-digit destination pincode."); return null; }
-    if (!body.whids.length) { alert("Select at least one warehouse."); return null; }
+    if (!body.whids.length) { alert("Select at least one warehouse chip."); return null; }
   }
   return body;
 }
