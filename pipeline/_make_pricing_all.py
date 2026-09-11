@@ -3,17 +3,20 @@
 works in a single BigQuery run.
 
 Emits:
-  pricing_lookup_all.sql  - standalone SEARCH query: DECLARE wh/pin/carrier and it
-                            returns the charge for that carrier on that lane
-                            (one row per unique lane; all 7 carriers' charges per
-                            lane embedded as a compact UNNEST string array).
+  pricing_lookup_all.sql  - ALL unique lanes x every carrier -> charge, in one
+                            query (long format: one row per lane x carrier; the
+                            lane->charges for all 7 carriers are embedded wide as
+                            a compact UNNEST string array).  Search with a simple
+                            WHERE warehouse_id=.. AND pincode=.. AND carrier='..'.
   queryGiven_joined.sql   - the query from desktop/queryGiven.txt (the shipment
                             query that carries a carrier per shipment) LEFT JOINed
                             with the same lookup; every shipment row gets
                             carrier_charge for ITS carrier on its lane.
 
 Charges = the web app engine's Fwd quote at the representative weight
-(default 0.5 kg) - identical to add_shipping_cost._quote_at.
+(default 0.5 kg) - identical to add_shipping_cost._quote_at (the rate-card +
+zone-master rulesets the /api/quote endpoint uses).  NULL = carrier not served
+on that lane or no servicable rate at that weight.
 """
 from __future__ import annotations
 
@@ -94,33 +97,39 @@ def wide_cte(recs, include_zones):
 
 def write_search(recs, include_zones, out="pricing_lookup_all.sql"):
     cte = wide_cte(recs, include_zones)
-    car = "CASE LOWER(carrier_key)\n" + "".join(
-        f"    WHEN '{f}' THEN {f}_charge\n" for f in CIDS) + "  END"
+    carriers_literal = ",\n".join(
+        f"    STRUCT('{f}' AS carrier_id, '{asc.DISPLAY[f]}' AS carrier)"
+        for f in CIDS)
+    car = "CASE c.carrier_id\n" + "".join(
+        f"    WHEN '{f}' THEN pl.{f}_charge\n" for f in CIDS) + "  END"
     sql = (
-        "/* ONE self-contained BigQuery query: (warehouse_id, pincode, carrier) -> charge.\n"
-        "   Set the three DECLAREs below to search; the lane->charge lookups for all 7\n"
-        f"   carriers are embedded ({len(recs):,} unique lanes, 0.5 kg Fwd representative). */\n"
-        "DECLARE wh INT64 DEFAULT 4;\n"
-        "DECLARE pin INT64 DEFAULT 400030;\n"
-        "DECLARE carrier_key STRING DEFAULT 'DTDC';\n"
-        "\n"
+        "/* ONE self-contained BigQuery query: EVERY unique lane x every carrier "
+        "-> the charge for that carrier on that lane.\n"
+        f"   Lane->charges for all 7 carriers are embedded (wide; {len(recs):,} "
+        "unique lanes, 0.5 kg Fwd representative, computed with the web app's\n"
+        "   rate-card rulesets).  NULL charge = that carrier does not serve the lane.\n"
+        "   To search: add  WHERE warehouse_id = .. AND pincode = ..\n"
+        "               AND carrier_id = 'dtdc'   (at the end). */\n"
         "WITH " + cte + ",\n"
-        "selected AS (\n"
-        "  SELECT\n"
-        "    warehouse_id,\n"
-        "    pincode,\n"
-        "    LOWER(carrier_key) AS carrier,\n"
-        "    " + car + " AS charge\n"
-        "  FROM price_lookup\n"
+        "carriers AS (\n"
+        "  SELECT * FROM UNNEST([\n" + carriers_literal + "\n"
+        "  ]) c\n"
         ")\n"
-        "SELECT warehouse_id, pincode, carrier, charge\n"
-        "FROM selected\n"
-        "WHERE warehouse_id = wh AND pincode = pin AND charge IS NOT NULL;\n"
+        "SELECT\n"
+        "  pl.warehouse_id,\n"
+        "  pl.pincode,\n"
+        "  c.carrier_id,\n"
+        "  c.carrier,\n"
+        "  " + car + " AS charge\n"
+        "FROM price_lookup pl\n"
+        "CROSS JOIN carriers c\n"
+        "ORDER BY pl.warehouse_id, pl.pincode, c.carrier_id;\n"
     )
     with open(os.path.join(ROOT, out), "w", encoding="utf-8", newline="\n") as fh:
         fh.write(sql)
     kb = len(sql.encode("utf-8")) / 1024
-    print(f"wrote {out}: {len(recs):,} lane rows, {kb:,.0f} KB")
+    print(f"wrote {out}: {len(recs):,} lane rows -> {len(recs) * len(CIDS):,} "
+          f"lane x carrier rows, {kb:,.0f} KB")
     return kb
 
 

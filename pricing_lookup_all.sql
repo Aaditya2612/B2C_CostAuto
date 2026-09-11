@@ -1,10 +1,8 @@
-/* ONE self-contained BigQuery query: (warehouse_id, pincode, carrier) -> charge.
-   Set the three DECLAREs below to search; the lane->charge lookups for all 7
-   carriers are embedded (21,020 unique lanes, 0.5 kg Fwd representative). */
-DECLARE wh INT64 DEFAULT 4;
-DECLARE pin INT64 DEFAULT 400030;
-DECLARE carrier_key STRING DEFAULT 'DTDC';
-
+/* ONE self-contained BigQuery query: EVERY unique lane x every carrier -> the charge for that carrier on that lane.
+   Lane->charges for all 7 carriers are embedded (wide; 21,020 unique lanes, 0.5 kg Fwd representative, computed with the web app's
+   rate-card rulesets).  NULL charge = that carrier does not serve the lane.
+   To search: add  WHERE warehouse_id = .. AND pincode = ..
+               AND carrier_id = 'dtdc'   (at the end). */
 WITH price_lookup AS (
   SELECT
     CAST(SPLIT(v, '|')[OFFSET(0)] AS INT64) AS warehouse_id,
@@ -21039,22 +21037,31 @@ WITH price_lookup AS (
 '6032|673615|42.00|||41.00|||'
   ]) v
 ),
-selected AS (
-  SELECT
-    warehouse_id,
-    pincode,
-    LOWER(carrier_key) AS carrier,
-    CASE LOWER(carrier_key)
-    WHEN 'delhivery' THEN delhivery_charge
-    WHEN 'bluedart' THEN bluedart_charge
-    WHEN 'dtdc' THEN dtdc_charge
-    WHEN 'ekart' THEN ekart_charge
-    WHEN 'shadowfax' THEN shadowfax_charge
-    WHEN 'amazon' THEN amazon_charge
-    WHEN 'elastic' THEN elastic_charge
-  END AS charge
-  FROM price_lookup
+carriers AS (
+  SELECT * FROM UNNEST([
+    STRUCT('delhivery' AS carrier_id, 'Delhivery' AS carrier),
+    STRUCT('bluedart' AS carrier_id, 'Bluedart (Dart Plus)' AS carrier),
+    STRUCT('dtdc' AS carrier_id, 'DTDC' AS carrier),
+    STRUCT('ekart' AS carrier_id, 'Ekart' AS carrier),
+    STRUCT('shadowfax' AS carrier_id, 'Shadowfax' AS carrier),
+    STRUCT('amazon' AS carrier_id, 'Amazon' AS carrier),
+    STRUCT('elastic' AS carrier_id, 'Elastic Run' AS carrier)
+  ]) c
 )
-SELECT warehouse_id, pincode, carrier, charge
-FROM selected
-WHERE warehouse_id = wh AND pincode = pin AND charge IS NOT NULL;
+SELECT
+  pl.warehouse_id,
+  pl.pincode,
+  c.carrier_id,
+  c.carrier,
+  CASE c.carrier_id
+    WHEN 'delhivery' THEN pl.delhivery_charge
+    WHEN 'bluedart' THEN pl.bluedart_charge
+    WHEN 'dtdc' THEN pl.dtdc_charge
+    WHEN 'ekart' THEN pl.ekart_charge
+    WHEN 'shadowfax' THEN pl.shadowfax_charge
+    WHEN 'amazon' THEN pl.amazon_charge
+    WHEN 'elastic' THEN pl.elastic_charge
+  END AS charge
+FROM price_lookup pl
+CROSS JOIN carriers c
+ORDER BY pl.warehouse_id, pl.pincode, c.carrier_id;
