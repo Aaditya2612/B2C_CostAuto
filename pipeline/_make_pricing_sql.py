@@ -66,7 +66,7 @@ def price_lookup_cte(rows):
     return cte
 
 
-def write_lookup(rows, carrier, weight, csv_path, out="pricing_lookup.sql"):
+def write_lookup(rows, carrier, weight, csv_path, out):
     header = (
         "/* (warehouse_id, destination_pincode, <carrier>) -> charge for each unique lane.\n"
         f"   carrier            : {carrier['name']} ({carrier['id']})\n"
@@ -144,18 +144,21 @@ def main():
     ap.add_argument("--weight", type=float, default=0.5, help="representative kg (Fwd)")
     ap.add_argument("--data", default="bc_sales_export.csv")
     ap.add_argument("--lookup-only", action="store_true", help="skip the joined variant")
+    ap.add_argument("--out", default=None,
+                    help="output file (default: pricing_lookup_<carrier_id>.sql)")
     args = ap.parse_args()
 
     carrier = asc.resolve_carrier(args.carrier)
     if carrier is None:
         raise SystemExit(f"Unknown carrier {args.carrier!r}. Known: "
                          + ", ".join(f"{c['id']}" for c in asc.DATA["active_carriers"]))
+    out = args.out or f"pricing_lookup_{carrier['id']}.sql"
     if not os.path.isabs(args.data):
         args.data = os.path.join(ROOT, args.data)
     rows, skipped = lane_rows(args.data, carrier, args.weight)
     print(f"lanes: {len(rows):,} served by {carrier['name']} "
           f"(skipped {skipped['no_lane']:,} no-lane, {skipped['no_cost']:,} not served)")
-    write_lookup(rows, carrier, args.weight, args.data)
+    write_lookup(rows, carrier, args.weight, args.data, out)
     if not args.lookup_only:
         write_joined(rows, carrier, args.weight)
 
