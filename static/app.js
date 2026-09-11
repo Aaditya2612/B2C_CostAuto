@@ -29,14 +29,7 @@ async function init() {
   if (BOOT.warehouses.length) whSel.value = BOOT.warehouses[0].whid;
 
   const movSel = $("movement");
-  const movs = ["Fwd", "RTO"];
-  movSel.innerHTML = "";
-  for (const m of movs) {
-    const o = document.createElement("option");
-    o.value = m;
-    o.textContent = m;
-    movSel.appendChild(o);
-  }
+  fillMovement(movSel);
 
   for (const c of BOOT.carriers) {
     carrierState[c.id] = {
@@ -46,6 +39,7 @@ async function init() {
     };
   }
   renderCarrierOptions();
+  buildBulk();
 
   $("load").addEventListener("click", run);
   $("rebuild").addEventListener("click", rebuild);
@@ -54,6 +48,23 @@ async function init() {
   $("rvp").addEventListener("change", () => { if (quoted) requote(); });
   $("weight").addEventListener("change", () => { if (quoted) requote(); });
   $("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
+
+  $("bmode").addEventListener("click", onBulkMode);
+  $("borient").addEventListener("click", onBulkOrient);
+  $("bload").addEventListener("click", runBulk);
+  $("bexport").addEventListener("click", exportBulkCsv);
+  $("bpins").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) runBulk(); });
+  $("bpin").addEventListener("keydown", (e) => { if (e.key === "Enter") runBulk(); });
+}
+
+function fillMovement(sel) {
+  sel.innerHTML = "";
+  for (const m of ["Fwd", "RTO"]) {
+    const o = document.createElement("option");
+    o.value = m;
+    o.textContent = m;
+    sel.appendChild(o);
+  }
 }
 
 function toggleAssumptions() {
@@ -359,6 +370,280 @@ async function rebuild() {
   } catch (e) {
     st.textContent = "Rebuild failed: " + e.message;
   }
+}
+
+// ---------- bulk quote ----------
+let BULK = null; // last bulk response
+
+const CARRIER_SHORT = {
+  delhivery: "Delhivery", bluedart: "Bluedart", dtdc: "DTDC", ekart: "Ekart",
+  shadowfax: "Shadowfax", amazon: "Amazon", elastic: "Elastic",
+};
+
+function buildBulk() {
+  const bwh = $("bwh");
+  for (const w of BOOT.warehouses) {
+    const o = document.createElement("option");
+    o.value = w.whid;
+    o.textContent = `${w.code} — WH ${w.whid} · ${w.state} (${w.origin_pin})`;
+    bwh.appendChild(o);
+  }
+  if (BOOT.warehouses.length) bwh.value = BOOT.warehouses[0].whid;
+
+  const bwhs = $("bwhs");
+  for (const w of BOOT.warehouses) {
+    const o = document.createElement("option");
+    o.value = w.whid;
+    o.textContent = `${w.code} — WH ${w.whid} · ${w.state}`;
+    bwhs.appendChild(o);
+  }
+  fillMovement($("bmovement"));
+}
+
+function onBulkMode(e) {
+  const btn = e.target.closest(".seg-btn");
+  if (!btn) return;
+  const mode = btn.dataset.mode;
+  $("bmode").querySelectorAll(".seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
+  $("bv_pins").hidden = mode !== "pins";
+  $("bv_whs").hidden = mode !== "whs";
+}
+
+function onBulkOrient(e) {
+  const btn = e.target.closest(".seg-btn");
+  if (!btn || !BULK) return;
+  $("borient").querySelectorAll(".seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
+  renderMatrix(btn.dataset.orient);
+}
+
+function bulkPayload() {
+  const mode = $("bmode").querySelector(".seg-btn.active").dataset.mode;
+  const body = {
+    mode,
+    weight_kg: parseFloat($("bweight").value) || 0,
+    movement: $("bmovement").value,
+    elastic_service: (carrierState.elastic && carrierState.elastic.service) || "standard",
+    volume: {},
+  };
+  for (const c of BOOT.carriers) if (carrierState[c.id].volume != null) body.volume[c.id] = carrierState[c.id].volume;
+
+  if (mode === "pins") {
+    body.whid = parseInt($("bwh").value, 10);
+    body.pins = ($("bpins").value || "").split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
+    if (!body.pins.length) { alert("Enter at least one 6-digit pincode."); return null; }
+  } else {
+    body.pin = ($("bpin").value || "").replace(/[^0-9]/g, "");
+    body.whids = [...$("bwhs").selectedOptions].map((o) => parseInt(o.value, 10));
+    if (!/^\d{6}$/.test(body.pin)) { alert("Enter one 6-digit destination pincode."); return null; }
+    if (!body.whids.length) { alert("Select at least one warehouse."); return null; }
+  }
+  return body;
+}
+
+async function runBulk() {
+  const body = bulkPayload();
+  if (!body) return;
+  const st = $("bstat");
+  st.textContent = "Quoting…";
+  try {
+    BULK = await getJSON("/api/bulk_quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    renderBulk();
+  } catch (err) {
+    st.textContent = "";
+    alert("Bulk quote failed: " + err.message);
+  }
+}
+
+function renderBulk() {
+  $("bresults").hidden = false;
+  $("bexport").hidden = false;
+  $("bstat").textContent = "";
+  const warn = $("bskip");
+  warn.hidden = !(BULK.warnings && BULK.warnings.length);
+  warn.textContent = (BULK.warnings || []).join(" · ");
+  buildBulkSummary();
+  renderMatrix($("borient").querySelector(".seg-btn.active").dataset.orient);
+}
+
+function buildBulkSummary() {
+  const lanes = BULK.lanes;
+  const served = lanes.filter((l) => l.found && l.carriers.some((c) => c.served)).length;
+  let cells = 0;
+  for (const l of lanes) cells += l.carriers.filter((c) => c.served).length;
+  let txt = "";
+  if (BULK.mode === "pins") {
+    const f = BULK.fixed;
+    txt += `From ${f.code} · WH ${f.whid} (${f.state}) — `;
+  } else {
+    const f = BULK.fixed;
+    txt += `To pin ${f.pin} — `;
+  }
+  txt += `${lanes.length} lanes · ${served} served by ≥1 carrier · ${cells} carrier cells priced`;
+  let best = null;
+  for (const l of lanes) {
+    if (!l.cheapest) continue;
+    if (!best || l.cheapest.cost < best.cost) best = { ...l.cheapest, whid: l.whid, pin: l.pin_6 };
+  }
+  if (best) {
+    txt += ` · cheapest overall: ${best.name} ₹${best.cost.toFixed(2)} on WH${best.whid} → ${best.pin}`;
+  }
+  $("bsummary").textContent = txt;
+}
+
+function bulkCell(c) {
+  return c && c.served && c.cost != null ? "₹" + c.cost.toFixed(2) : "—";
+}
+
+function laneText(l) {
+  if (BULK.mode === "pins") {
+    const geo = l.city ? `${l.city}${l.state ? ", " + l.state : ""}` : "";
+    return `${l.pin_6}${geo ? " · " + geo : ""}${l.found ? "" : " · no zone-master lane"}`;
+  }
+  const geo = l.wh_state || "";
+  return `WH${l.whid}${geo ? " · " + geo : ""} → ${l.pin_6}${l.found ? "" : " · no zone-master lane"}`;
+}
+
+function carrierTitle(c) {
+  return `${c.rate_basis || ""} — zone ${c.master_zone || "n/a"} / final ${c.final_zone || "n/a"}`;
+}
+
+function renderMatrix(orient) {
+  const host = $("bwrap");
+  const lanes = BULK.lanes;
+  const carriers = BULK.carrier_order;
+  const table = document.createElement("table");
+  table.className = "bulkmat";
+
+  if (orient === "lanes") {
+    const thead = document.createElement("thead");
+    const tr = document.createElement("tr");
+    const th0 = document.createElement("th");
+    th0.textContent = BULK.mode === "pins" ? "Pincode · City" : "Warehouse → pin";
+    th0.style.minWidth = "190px";
+    tr.appendChild(th0);
+    for (const id of carriers) {
+      const th = document.createElement("th");
+      th.className = "num";
+      th.textContent = CARRIER_SHORT[id] || id;
+      tr.appendChild(th);
+    }
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    for (const l of lanes) {
+      const tr = document.createElement("tr");
+      const byId = {};
+      for (const c of l.carriers) byId[c.id] = c;
+      const td0 = document.createElement("td");
+      td0.textContent = laneText(l);
+      tr.appendChild(td0);
+      const best = l.cheapest;
+      for (const id of carriers) {
+        const c = byId[id];
+        const td = document.createElement("td");
+        td.className = "num";
+        if (c && c.served && c.cost != null) {
+          if (best && best.id === id) td.classList.add("bestc");
+          td.textContent = bulkCell(c);
+          td.title = carrierTitle(c);
+        } else {
+          td.textContent = "—";
+          td.classList.add("cellna");
+          td.title = (c && c.rate_basis) || "no rate";
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+  } else {
+    const thead = document.createElement("thead");
+    const tr = document.createElement("tr");
+    const th0 = document.createElement("th");
+    th0.textContent = "Carrier";
+    tr.appendChild(th0);
+    for (const l of lanes) {
+      const th = document.createElement("th");
+      th.className = "num";
+      th.textContent = BULK.mode === "pins" ? l.pin_6 : "WH" + l.whid;
+      th.title = laneText(l);
+      tr.appendChild(th);
+    }
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    for (const id of carriers) {
+      const tr = document.createElement("tr");
+      const td0 = document.createElement("td");
+      td0.className = "cname";
+      td0.textContent = CARRIER_SHORT[id] || id;
+      tr.appendChild(td0);
+      for (const l of lanes) {
+        const c = l.carriers.find((x) => x.id === id);
+        const td = document.createElement("td");
+        td.className = "num";
+        if (c && c.served && c.cost != null) {
+          if (l.cheapest && l.cheapest.id === id) td.classList.add("bestc");
+          td.textContent = bulkCell(c);
+          td.title = carrierTitle(c);
+        } else {
+          td.textContent = "—";
+          td.classList.add("cellna");
+          td.title = (c && c.rate_basis) || "no rate";
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+  }
+  host.replaceChildren(table);
+}
+
+function exportBulkCsv() {
+  if (!BULK) return;
+  const orient = $("borient").querySelector(".seg-btn.active").dataset.orient;
+  const lanes = BULK.lanes;
+  const carriers = BULK.carrier_order;
+  const rows = [];
+  if (orient === "lanes") {
+    rows.push(["whid", "pin", "city", "state", "in_zone_master", ...carriers.map((id) => CARRIER_SHORT[id] || id)]);
+    for (const l of lanes) {
+      const byId = {};
+      for (const c of l.carriers) byId[c.id] = c;
+      rows.push([
+        l.whid, l.pin_6, l.city || "", l.state || "", l.found ? "yes" : "no",
+        ...carriers.map((id) => {
+          const c = byId[id];
+          return c && c.served && c.cost != null ? c.cost.toFixed(2) : "";
+        }),
+      ]);
+    }
+  } else {
+    rows.push(["carrier", ...lanes.map((l) => (BULK.mode === "pins" ? l.pin_6 : "WH" + l.whid))]);
+    for (const id of carriers) {
+      rows.push([
+        CARRIER_SHORT[id] || id,
+        ...lanes.map((l) => {
+          const c = l.carriers.find((x) => x.id === id);
+          return c && c.served && c.cost != null ? c.cost.toFixed(2) : "";
+        }),
+      ]);
+    }
+  }
+  const csv = rows.map((r) => r.map((v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "bulk_costs.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 init();

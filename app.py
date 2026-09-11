@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
+import subprocess
 import sys
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -31,6 +33,60 @@ def load_data():
 DATA = load_data()
 WH_BY_ID = {w["whid"]: w for w in DATA["warehouses"]}
 MASTER_COL = DATA["master_col_by_id"]
+
+_LANE_COLS = ["whid", "origin_pin", "pin", "city", "state", "lane", "ecom", "delhivery",
+              "delhivery_mm", "shadowfax", "bluedart_plus", "dtdc", "delhivery_ndd",
+              "ekart", "amazon"]
+_LANE_SQL = ("SELECT whid, origin_pin, pin, city, state, lane, ecom, delhivery, "
+             "delhivery_mm, shadowfax, bluedart_plus, dtdc, delhivery_ndd, ekart, amazon "
+             "FROM lanes WHERE ")
+
+
+def _row_to_dict(row):
+    return dict(zip(_LANE_COLS, row)) if row else None
+
+
+def _fetch_lane(whid, pin):
+    if not whid or pin is None:
+        return None
+    con = _conn()
+    row = con.execute(_LANE_SQL + "whid=? AND pin=?", (whid, pin)).fetchone()
+    con.close()
+    return _row_to_dict(row)
+
+
+def _compute_carriers(rec, weight, movement, volume, elastic_service, zone_overrides=None):
+    """Run every active carrier through the pricing engine for one lane row.
+
+    `rec` is the lanes-table dict or None (lane unknown); returns sorted results.
+    """
+    zone_overrides = zone_overrides or {}
+    default_zones = {}
+    if rec:
+        default_zones = {
+            "delhivery": rec["delhivery"],
+            "bluedart": rec["bluedart_plus"],
+            "dtdc": rec["dtdc"],
+            "ekart": rec["ekart"],
+            "shadowfax": rec["shadowfax"],
+            "amazon": rec["amazon"],
+            "elastic": None,
+        }
+    opts = {"whid": rec["whid"] if rec else None, "pin": rec["pin"] if rec else None,
+            "volume": volume, "elastic_service": elastic_service}
+    results = []
+    for c in DATA["active_carriers"]:
+        if c["id"] in zone_overrides:
+            zone = zone_overrides[c["id"]] or ""
+        else:
+            zone = default_zones.get(c["id"])
+        results.append(quote_carrier(c, zone, weight, movement, opts, DATA))
+    return _sort_carriers(results)
+
+
+def _digit6(pin):
+    s = re.sub(r"\D", "", str(pin or ""))
+    return s if len(s) == 6 else None
 
 
 def _conn():
@@ -185,41 +241,8 @@ def quote():
     volume = body.get("volume") or {}
     elastic_service = body.get("elastic_service") or "standard"
 
-    # Default zones from the lane master (unless user overrode them).
-    default_zones = {}
-    rec = None
-    if whid and pin:
-        con = _conn()
-        row = con.execute(
-            "SELECT whid, origin_pin, pin, city, state, lane, ecom, delhivery, "
-            "delhivery_mm, shadowfax, bluedart_plus, dtdc, delhivery_ndd, ekart, amazon "
-            "FROM lanes WHERE whid=? AND pin=?", (whid, pin)).fetchone()
-        con.close()
-        if row:
-            cols = ["whid", "origin_pin", "pin", "city", "state", "lane", "ecom", "delhivery",
-                    "delhivery_mm", "shadowfax", "bluedart_plus", "dtdc",
-                    "delhivery_ndd", "ekart", "amazon"]
-            rec = dict(zip(cols, row))
-            default_zones = {
-                "delhivery": rec["delhivery"],
-                "bluedart": rec["bluedart_plus"],
-                "dtdc": rec["dtdc"],
-                "ekart": rec["ekart"],
-                "shadowfax": rec["shadowfax"],
-                "amazon": rec["amazon"],
-                "elastic": None,
-            }
-
-    opts = {"whid": whid, "pin": pin, "volume": volume, "elastic_service": elastic_service}
-    results = []
-    for c in DATA["active_carriers"]:
-        # Explicit override (incl. null = "force not served") wins over the lane default.
-        if c["id"] in zone_overrides:
-            zone = zone_overrides[c["id"]] or ""
-        else:
-            zone = default_zones.get(c["id"])
-        results.append(quote_carrier(c, zone, weight, movement, opts, DATA))
-    results = _sort_carriers(results)
+    rec = _fetch_lane(whid, pin)
+    results = _compute_carriers(rec, weight, movement, volume, elastic_service, zone_overrides)
     cheapest = next((c for c in results if c.get("cost") is not None), None)
 
     # Optional Shadowfax RVP (reverse pickup) quote on the same lane.
@@ -231,6 +254,124 @@ def quote():
 
     return jsonify({"carriers": results, "cheapest": cheapest,
                     "movement": movement, "rvp": rvp})
+
+
+@app.route("/api/bulk_quote", methods=["POST"])
+def bulk_quote():
+    """Quote many lanes at once, shared volume/weight/movement for all of them.
+
+    mode "pins": one warehouse (whid) x many destination pincodes.
+    mode "whs":  many warehouses x one destination pincode.
+    """
+    body = request.get_json(force=True) or {}
+    mode = body.get("mode") or "pins"
+    weight = float(body.get("weight_kg") or 0)
+    movement = (body.get("movement") or "Fwd").upper()
+    volume = body.get("volume") or {}
+    elastic_service = body.get("elastic_service") or "standard"
+    warnings = []
+
+    con = _conn()
+    by_lane = {}  # (whid, pin) -> lane row dict
+    lanes = []
+
+    if mode == "whs":
+        pin6 = _digit6(body.get("pin"))
+        if pin6 is None:
+            con.close()
+            return jsonify({"error": "Destination pincode must be 6 digits"}), 400
+        pin = int(pin6)
+        whids = []
+        for w in body.get("whids") or []:
+            try:
+                wid = int(w)
+            except (TypeError, ValueError):
+                warnings.append(f"skipping non-numeric warehouse {w!r}")
+                continue
+            if wid in WH_BY_ID:
+                whids.append(wid)
+            else:
+                warnings.append(f"skipping unknown warehouse WH {wid}")
+        if not whids:
+            con.close()
+            return jsonify({"error": "No valid warehouses selected"}), 400
+        ins = ",".join("?" * len(whids))
+        rows = con.execute(_LANE_SQL + f"pin=? AND whid IN ({ins})", [pin] + whids).fetchall()
+        con.close()
+        for r in rows:
+            by_lane[(r[0], r[2])] = _row_to_dict(r)
+        for wid in whids:
+            rec = by_lane.get((wid, pin))
+            lanes.append(_bulk_lane(rec, wid, pin, pin6, weight, movement, volume, elastic_service))
+        fixed = {"kind": "pin", "pin": pin6}
+    else:
+        try:
+            whid = int(body.get("whid"))
+        except (TypeError, ValueError):
+            con.close()
+            return jsonify({"error": "Warehouse required"}), 400
+        if whid not in WH_BY_ID:
+            con.close()
+            return jsonify({"error": f"Unknown warehouse WH {whid}"}), 400
+        tokens = body.get("pins") or []
+        if isinstance(tokens, str):
+            tokens = re.split(r"[\s,;]+", tokens)
+        pins = []
+        seen = set()
+        for t in tokens:
+            d = _digit6(t)
+            if d is None:
+                warnings.append(f"skipping invalid pin {str(t).strip()!r}")
+                continue
+            i = int(d)
+            if i in seen:
+                continue
+            seen.add(i)
+            pins.append((d, i))
+        if not pins:
+            con.close()
+            return jsonify({"error": "No valid 6-digit pincodes provided"}), 400
+        ins = ",".join("?" * len(pins))
+        rows = con.execute(_LANE_SQL + f"whid=? AND pin IN ({ins})",
+                           [whid] + [i for _, i in pins]).fetchall()
+        con.close()
+        for r in rows:
+            by_lane[(r[0], r[2])] = _row_to_dict(r)
+        for d, i in pins:
+            rec = by_lane.get((whid, i))
+            lanes.append(_bulk_lane(rec, whid, i, d, weight, movement, volume, elastic_service))
+        fixed = {"kind": "whid", "whid": whid, "code": WH_BY_ID[whid]["code"],
+                 "state": WH_BY_ID[whid]["state"]}
+
+    return jsonify({
+        "mode": mode,
+        "fixed": fixed,
+        "carrier_order": [c["id"] for c in DATA["active_carriers"]],
+        "lanes": lanes,
+        "warnings": warnings,
+        "weight": weight,
+        "movement": movement,
+    })
+
+
+def _bulk_lane(rec, whid, pin, pin6, weight, movement, volume, elastic_service):
+    wh = WH_BY_ID.get(whid, {})
+    lane = {
+        "whid": whid,
+        "wh_code": wh.get("code"),
+        "wh_state": wh.get("state"),
+        "pin": pin,
+        "pin_6": pin6,
+        "city": rec["city"] if rec else None,
+        "state": rec["state"] if rec else None,
+        "found": bool(rec),
+        "carriers": [],
+        "cheapest": None,
+    }
+    if rec:
+        lane["carriers"] = _compute_carriers(rec, weight, movement, volume, elastic_service)
+        lane["cheapest"] = next((c for c in lane["carriers"] if c.get("cost") is not None), None)
+    return lane
 
 
 @app.route("/api/rebuild", methods=["POST"])

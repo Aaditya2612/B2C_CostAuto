@@ -41,6 +41,59 @@
     <div class="volgrid" id="volgrid"></div>
   </section>
 
+  <section id="bulk" class="bulk">
+    <div class="bulk-head">
+      <h2 class="volhead">Bulk quote <span class="volsub">(many lanes at once &mdash; uses the volume slabs / services above)</span></h2>
+      <div class="seg" id="bmode">
+        <button type="button" class="seg-btn active" data-mode="pins">1 warehouse &rarr; many pincodes</button>
+        <button type="button" class="seg-btn" data-mode="whs">many warehouses &rarr; 1 pincode</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="bvariant" id="bv_pins">
+        <label>Origin WH
+          <select id="bwh" class="inp"></select>
+        </label>
+        <label>Destination pincodes <span class="vsub">one 6-digit pin per line</span>
+          <textarea id="bpins" class="inp txta" rows="7" placeholder="400607&#10;421302&#10;560001"></textarea>
+        </label>
+      </div>
+      <div class="bvariant" id="bv_whs" hidden>
+        <label>Warehouses <span class="vsub">click to add / Ctrl-click to multi-select</span>
+          <select id="bwhs" class="inp multisel" multiple size="8"></select>
+        </label>
+        <label>Destination pincode
+          <input id="bpin" class="inp" type="text" inputmode="numeric" placeholder="e.g. 400607" />
+        </label>
+      </div>
+      <label>Weight (kg)
+        <input id="bweight" class="inp" type="number" step="0.001" min="0" value="0.5" />
+      </label>
+      <label>Movement
+        <select id="bmovement" class="inp"></select>
+      </label>
+    </div>
+
+    <div class="row bulk-actions">
+      <button id="bload" class="btn primary" type="button">Run bulk quote</button>
+      <button id="bexport" class="btn ghost small" type="button" hidden>Export CSV</button>
+      <span id="bstat" class="bstat"></span>
+    </div>
+
+    <div id="bresults" class="bresults" hidden>
+      <div class="bresult-bar">
+        <span id="bsummary" class="bsummary"></span>
+        <div class="seg" id="borient">
+          <button type="button" class="seg-btn active" data-orient="lanes">Rows = lanes</button>
+          <button type="button" class="seg-btn" data-orient="carriers">Rows = carriers</button>
+        </div>
+      </div>
+      <p id="bskip" class="bskip" hidden></p>
+      <div class="bwrap" id="bwrap"></div>
+    </div>
+  </section>
+
   <section id="laneinfo" class="lane" hidden></section>
 
   <section id="results" class="results" hidden>
