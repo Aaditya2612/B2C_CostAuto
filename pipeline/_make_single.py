@@ -113,7 +113,8 @@ def inline_lane_cost():
     for line in ("DATA = _data()", "DISPLAY = {c[\"id\"]: c[\"name\"] for c in DATA[\"active_carriers\"]}",
                  "ZONES = _load_lanes()",
                  "WHIDS = {w for (w, _) in ZONES}",
-                 "_ORDER = {cid: i for i, cid in enumerate(DISPLAY)}"):
+                 "_ORDER = {cid: i for i, cid in enumerate(DISPLAY)}",
+                 "_NAME_TO_ID = {name: cid for cid, name in DISPLAY.items()}"):
         src = re.sub(rf"^{re.escape(line)}\s*$", "", src, count=1, flags=re.M)
     src = re.sub(r"\ndef main\(\):.*$", "", src, flags=re.S)   # drop dead CSV main()
     return src.split('if __name__ == "__main__":')[0]
@@ -190,6 +191,7 @@ LANES_KEYS = {LANE_KEYS!r}
     A("ZONES = _load_lanes()")
     A("WHIDS = {w for (w, _) in ZONES}")
     A("_ORDER = {cid: i for i, cid in enumerate(DISPLAY)}")
+    A("_NAME_TO_ID = {name: cid for cid, name in DISPLAY.items()}")
     A("")
     A("")
     A(f'SQL_QUERY = """{sql}"""')
@@ -235,6 +237,9 @@ LANES_KEYS = {LANE_KEYS!r}
                         help="price only this one carrier (id or name, e.g. "
                              "delhivery / 'Delhivery'); default prices the "
                              "cheapest carrier per unique lane")
+    parser.add_argument("--lanes", action="store_true",
+                        help="also write <out>_lanes.csv: ONE row per unique "
+                             "(warehouse_id, pincode) lane for that carrier")
     args = parser.parse_args()
     carrier = resolve_carrier(args.carrier)
     if args.carrier and carrier is None:
@@ -244,7 +249,13 @@ LANES_KEYS = {LANE_KEYS!r}
         raise SystemExit(2)
     df = build_df_from_query(carrier)
     df.to_csv(args.out, index=False)
-    print(f"Saved {len(df):,} rows to {args.out}")''')
+    print(f"Saved {len(df):,} rows to {args.out}")
+    if args.lanes:
+        ls = lane_summary(df, carrier)
+        lanes_csv = args.out.rsplit(".", 1)[0] + "_lanes.csv"
+        ls.to_csv(lanes_csv, index=False)
+        print(f"Lane table ({len(ls):,} unique lanes x carrier): {lanes_csv}")
+        print(ls.head(8).to_string(index=False))''')
     A("")
     A('if __name__ == "__main__":')
     A("    main()")

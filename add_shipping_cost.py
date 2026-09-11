@@ -17,6 +17,7 @@ DISPLAY = {c["id"]: c["name"] for c in DATA["active_carriers"]}
 ZONES = _load_lanes()          # {(whid, pin): {carrier_col: zone}}
 WHIDS = {w for (w, _) in ZONES}
 _ORDER = {cid: i for i, cid in enumerate(DISPLAY)}
+_NAME_TO_ID = {name: cid for cid, name in DISPLAY.items()}
 
 
 def resolve_carrier(name):
@@ -237,6 +238,57 @@ def add_carrier_cost_columns(df, carrier, weight_col="chargeable_weight_kg"):
     return df
 
 
+def lane_summary(df, carrier=None):
+    """Join the chosen carrier to the UNIQUE lanes: one row per distinct
+    (warehouse_id, pincode) x carrier.
+
+    representative_charge = the lane's Fwd quote for that carrier at
+    QUOTE_WEIGHT; the *_cost columns summarise the per-shipment charges from the
+    rows already computed by add_cost_columns (weights differ per shipment)."""
+    df = df.copy()
+    if "chargeable_weight_kg" not in df.columns:
+        df["chargeable_weight_kg"] = pd.NA
+    rows = []
+    for (whid, pin), sub in df.groupby(["warehouse_id", "pincode"], dropna=False):
+        if pd.isna(whid) or pd.isna(pin):
+            continue
+        whid, pin = int(whid), int(pin)
+        if whid not in WHIDS:
+            continue
+        if carrier is not None:
+            cid = carrier["id"]
+            disp = DISPLAY[cid]
+            rep = _quote(whid, pin, carrier, "Fwd")
+            zone = _carrier_zone(whid, pin, cid)
+        else:
+            cnames = sub["shipping_carrier"].dropna()
+            costs_c = sub["shipping_cost"].dropna()
+            if cnames.empty or costs_c.empty:
+                continue
+            disp = cnames.mode().iloc[0]
+            cid = _NAME_TO_ID.get(disp)
+            rep = costs_c.mode().iloc[0]
+            zone = _carrier_zone(whid, pin, cid) if cid else None
+        costs = sub["shipping_cost"].dropna()
+        w = sub["chargeable_weight_kg"].dropna()
+        rows.append({
+            "warehouse_id": whid,
+            "pincode": pin,
+            "carrier": disp,
+            "carrier_zone": zone,
+            "representative_charge": round(float(rep), 2) if rep is not None else None,
+            "shipments": int(len(sub)),
+            "min_weight_kg": round(float(w.min()), 3) if len(w) else None,
+            "avg_weight_kg": round(float(w.mean()), 3) if len(w) else None,
+            "max_weight_kg": round(float(w.max()), 3) if len(w) else None,
+            "min_cost": round(float(costs.min()), 2) if len(costs) else None,
+            "avg_cost": round(float(costs.mean()), 2) if len(costs) else None,
+            "max_cost": round(float(costs.max()), 2) if len(costs) else None,
+            "total_cost": round(float(costs.sum()), 2) if len(costs) else None,
+        })
+    return pd.DataFrame(rows)
+
+
 def add_cost_columns(df, carrier=None):
     df = df.copy()
     if "rto_marked_on" not in df.columns and "rto_marked_date" in df.columns:
@@ -256,6 +308,9 @@ def main():
     parser.add_argument("--carrier", default=None,
                         help="only this carrier (id or name, e.g. delhivery); "
                              "default prices the cheapest carrier per lane")
+    parser.add_argument("--lanes", action="store_true",
+                        help="also write <out>_lanes.csv: ONE row per unique "
+                             "(warehouse_id, pincode) lane for that carrier")
     args = parser.parse_args()
     carrier = resolve_carrier(args.carrier)
     if args.carrier and carrier is None:
@@ -269,6 +324,14 @@ def main():
 
     df = add_cost_columns(df, carrier)
     df.to_csv(args.out_csv, index=False)
+
+    if args.lanes:
+        ls = lane_summary(df, carrier)
+        lanes_csv = args.out_csv.rsplit(".", 1)[0] + "_lanes.csv"
+        ls.to_csv(lanes_csv, index=False)
+        print(f"lane table ({len(ls):,} unique lanes x carrier): {lanes_csv}")
+        print(ls.head(8).to_string(index=False), flush=True)
+        print()
 
     scope = f"single carrier: {carrier['name']}" if carrier else "cheapest carrier per lane"
     priced = df["shipping_cost"].notna().sum()
