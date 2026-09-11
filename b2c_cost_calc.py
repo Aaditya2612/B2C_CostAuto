@@ -197,10 +197,6 @@ DATA_JSON = json.loads(r"""{
         "F": 92.0
       },
       "xy": {
-        "<1 Lakh": {
-          "X": null,
-          "Y": null
-        },
         "1-3 Lakh": {
           "X": 35.0,
           "Y": 42.0

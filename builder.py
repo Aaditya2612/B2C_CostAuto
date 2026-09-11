@@ -207,9 +207,8 @@ PRICE_CARDS = {
             "D1": 65.0, "D2": 65.0, "E": 85.0, "F": 92.0,
         },
         "xy": {  # monthly volume slabs -> A (X) / B (Y) forward rates
-            # <1 Lakh = 'Existing rate card, Table B'; X/Y are NOT printed anywhere
-            # in the workbook, so they are intentionally unavailable (no made-up numbers).
-            "<1 Lakh": {"X": None, "Y": None},
+            # The retired '<1 Lakh' slab ('Existing Rate Card, Table B') was not
+            # printed in the workbook, so it is intentionally not offered.
             "1-3 Lakh": {"X": 35.0, "Y": 42.0},
             ">=3 Lakh": {"X": 31.0, "Y": 38.5},
         },
