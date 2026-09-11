@@ -221,7 +221,7 @@ PRICE_CARDS = {
         },
         "rto": 0.0,
         "cod": 0.0,
-        "movements": ["Fwd", "RTO", "DTO"],
+        "movements": ["Fwd", "RTO"],
     },
     "bluedart": {
         "label": "Dart Plus Rates (valid till 31-Dec-2025)",

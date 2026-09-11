@@ -29,7 +29,7 @@ async function init() {
   if (BOOT.warehouses.length) whSel.value = BOOT.warehouses[0].whid;
 
   const movSel = $("movement");
-  const movs = ["Fwd", "RTO", "DTO"];
+  const movs = ["Fwd", "RTO"];
   movSel.innerHTML = "";
   for (const m of movs) {
     const o = document.createElement("option");

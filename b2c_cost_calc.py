@@ -233,8 +233,7 @@ DATA_JSON = json.loads(r"""{
       "cod": 0.0,
       "movements": [
         "Fwd",
-        "RTO",
-        "DTO"
+        "RTO"
       ]
     },
     "bluedart": {
