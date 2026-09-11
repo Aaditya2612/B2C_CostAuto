@@ -135,7 +135,9 @@ Requirements:
     pip install pandas google-cloud-bigquery google-api-python-client google-auth
 
 Run (daily pull + cost columns):
-    python bc_sales_pipeline_single.py [out.csv]
+    python bc_sales_pipeline_single.py [out.csv] [--carrier <carrier>]
+    # --carrier picks ONE carrier (id or name, e.g. delhivery) so every
+    # unique (warehouse_id, pincode, carrier) combo shows that carrier's charge.
     # GOOGLE_APPLICATION_CREDENTIALS must point at your service-account JSON
 
 Prepared from: pricing.py / cps_compute.py / add_shipping_cost.py /
@@ -178,7 +180,7 @@ LANES_KEYS = {LANE_KEYS!r}
     A("# ---- cps_compute logic (inlined) ---------------------------------------")
     A(strip_cps_defs(inline_cps_source()))
     A("")
-    A("# ---- lane shipping-cost logic (inlined) --------------------------------")
+    A("# ---- lane shipping-cost logic (inlined: add_shipping_cost.py) ----------")
     A(inline_lane_cost())
     A("")
     A("# ---- data/lane sources re-bound to the embedded copies -----------------")
@@ -189,84 +191,32 @@ LANES_KEYS = {LANE_KEYS!r}
     A("_ORDER = {cid: i for i, cid in enumerate(DISPLAY)}")
     A("")
     A("")
-    A("def add_shipping_cost_columns(df):")
-    A("    \"\"\"Cheapest-carrier shipping cost per unique (warehouse_id, pincode) lane.\"\"\"")
-    A("    lanes = (")
-    A('        df.loc[df["warehouse_id"].isin(WHIDS), ["warehouse_id", "pincode"]]')
-    A("        .drop_duplicates()")
-    A("    )")
-    A("    lane_fwd, lane_rto = {}, {}")
-    A("    for whid, pin in lanes.itertuples(index=False):")
-    A("        fwd, rto = _lane_quotes(int(whid), int(pin))")
-    A("        lane_fwd[(int(whid), int(pin))] = _pick(fwd)")
-    A("        lane_rto[(int(whid), int(pin))] = _pick(rto)")
-    A("")
-    A("    rto_flag = (")
-    A('        df["shipment_status"].astype(str).eq("Returned")')
-    A('        | df["latest_secondary_status"].astype(str).str.contains("RTO", case=False, na=False)')
-    A('        | df["rto_marked_date"].notna()')
-    A('        | df["rto_received_date"].notna()')
-    A("    )")
-    A("")
-    A("    costs, carriers, notes = [], [], []")
-    A("    for whid, pin, is_rto in zip(")
-    A('        df["warehouse_id"].astype("Int64"), df["pincode"].astype("Int64"), rto_flag')
-    A("    ):")
-    A("        if pd.isna(whid) or pd.isna(pin):")
-    A("            costs.append(None); carriers.append(None)")
-    A('            notes.append("missing warehouse_id/pincode")')
-    A("            continue")
-    A("        whid, pin = int(whid), int(pin)")
-    A("        if whid not in WHIDS:")
-    A("            costs.append(None); carriers.append(None)")
-    A('            notes.append("warehouse not on rate card")')
-    A("            continue")
-    A("        key = (whid, pin)")
-    A("        if is_rto:")
-    A("            cost, carrier = lane_rto.get(key, (None, None))")
-    A('            note = ("ok" if cost is not None')
-    A('                    else ("RTO not quoted on any carrier"')
-    A('                          if lane_fwd.get(key, (None, None))[0] is not None')
-    A('                          else "no servicable carrier on this lane"))')
-    A("        else:")
-    A("            cost, carrier = lane_fwd.get(key, (None, None))")
-    A('            note = "ok" if cost is not None else "no servicable carrier on this lane"')
-    A("        costs.append(cost); carriers.append(carrier); notes.append(note)")
-    A("")
-    A('    df["shipping_cost"] = costs')
-    A('    df["shipping_carrier"] = carriers')
-    A('    df["shipping_cost_note"] = notes')
-    A("    return df")
-    A("")
-    A("")
-    A("def add_cost_columns(df):")
-    A("    df = df.copy()")
-    A('    if "rto_marked_on" not in df.columns and "rto_marked_date" in df.columns:')
-    A('        df["rto_marked_on"] = df["rto_marked_date"]')
-    A("    df = compute_cps(df)")
-    A("    df = add_shipping_cost_columns(df)")
-    A("    return df")
-    A("")
-    A("")
     A(f'SQL_QUERY = """{sql}"""')
     A("")
-    A('''def build_df_from_query():
-    """Run the SQL query and return the dataframe with the cost columns appended."""
+    A('''def build_df_from_query(carrier=None):
+    """Run the SQL query and return the dataframe with the cost columns appended.
+
+    carrier=None prices the cheapest carrier per unique lane;
+    carrier=<dict> prices that one carrier on every (warehouse_id, pincode, carrier).
+    """
     from google.cloud import bigquery
     client = bigquery.Client()
     print("Executing query...")
     df = client.query(SQL_QUERY).to_dataframe()
     print("Computing cost columns...")
-    df = add_cost_columns(df)
+    df = add_cost_columns(df, carrier)
     total, priced = len(df), df["calculated_freight"].notna().sum()
     sh = df["shipping_cost"].notna().sum()
     print(f"[COST] rows {total:,} | freight priced {priced:,} "
           f"({priced / total * 100:.1f}%) | shipping_cost present {sh:,} "
           f"({sh / total * 100:.1f}%)")
+    if carrier is not None:
+        print(f"scope: single carrier = {carrier['name']}")
     preview = [c for c in ["order_id", "awb", "carrier_name", "warehouse_id",
                            "warehouse_name", "pincode", "shipment_status",
                            "chargeable_weight_kg", "calculated_freight",
-                           "shipping_cost", "shipping_carrier", "shipping_cost_note"]
+                           "carrier_zone", "shipping_cost", "shipping_carrier",
+                           "shipping_cost_note"]
                if c in df.columns]
     print("\\nPreview (top rows of the dataframe with the cost columns):")
     print(df[preview].head(10).to_string(index=False))
@@ -274,11 +224,23 @@ LANES_KEYS = {LANE_KEYS!r}
     return df''')
     A("")
     A('''def main():
-    import sys
-    out = sys.argv[1] if len(sys.argv) > 1 else "bc_sales_export_with_cost.csv"
-    df = build_df_from_query()
-    df.to_csv(out, index=False)
-    print(f"Saved {len(df):,} rows to {out}")''')
+    import argparse
+    parser = argparse.ArgumentParser(description="B2C cost pipeline (standalone).")
+    parser.add_argument("out", nargs="?", default="bc_sales_export_with_cost.csv")
+    parser.add_argument("--carrier", default=None,
+                        help="price only this one carrier (id or name, e.g. "
+                             "delhivery / 'Delhivery'); default prices the "
+                             "cheapest carrier per unique lane")
+    args = parser.parse_args()
+    carrier = resolve_carrier(args.carrier)
+    if args.carrier and carrier is None:
+        print("Unknown carrier %r. Known: %s"
+              % (args.carrier, ", ".join("%s (%s)" % (c["id"], c["name"])
+                                         for c in DATA["active_carriers"])))
+        raise SystemExit(2)
+    df = build_df_from_query(carrier)
+    df.to_csv(args.out, index=False)
+    print(f"Saved {len(df):,} rows to {args.out}")''')
     A("")
     A('if __name__ == "__main__":')
     A("    main()")

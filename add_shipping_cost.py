@@ -1,11 +1,11 @@
-
-
 from __future__ import annotations
+
+import argparse
 
 import pandas as pd
 
 import pricing
-from cps_compute import DEFAULT_VOLUME, LANE_COLUMN, _data, _load_lanes
+from cps_compute import DEFAULT_VOLUME, LANE_COLUMN, _data, _load_lanes, compute_cps
 
 SRC = "bc_sales_export.csv"
 OUT = "bc_sales_export_with_cost.csv"
@@ -17,6 +17,18 @@ DISPLAY = {c["id"]: c["name"] for c in DATA["active_carriers"]}
 ZONES = _load_lanes()          # {(whid, pin): {carrier_col: zone}}
 WHIDS = {w for (w, _) in ZONES}
 _ORDER = {cid: i for i, cid in enumerate(DISPLAY)}
+
+
+def resolve_carrier(name):
+    """Map a user-supplied carrier to its active-carrier dict (id or display
+    name, case-insensitive). Returns None if nothing matches."""
+    if not name:
+        return None
+    key = str(name).strip().lower()
+    for c in DATA["active_carriers"]:
+        if c["id"].lower() == key or c["name"].lower() == key:
+            return c
+    return None
 
 
 def _pick(quotes: dict):
@@ -46,7 +58,7 @@ def _quote(whid: int, pin: int, carrier, movement: str):
 
 
 def _lane_quotes(whid: int, pin: int):
-    """(fwd_quotes, rto_quotes) for the lane at QUOTE_WEIGHT."""
+    """({cid: cost_fwd}, {cid: cost_rto}) for the lane at QUOTE_WEIGHT."""
     fwd, rto = {}, {}
     for carrier in DATA["active_carriers"]:
         cost = _quote(whid, pin, carrier, "Fwd")
@@ -59,25 +71,19 @@ def _lane_quotes(whid: int, pin: int):
     return fwd, rto
 
 
-def main():
-    print(f"Reading {SRC} ...", flush=True)
-    df = pd.read_csv(SRC, low_memory=False)
-    print(f"Loaded {len(df):,} rows. Computing lane quotes ...", flush=True)
+def _carrier_zone(whid: int, pin: int, cid: str):
+    """The zone-master value for a carrier on a lane (None for elastic / none)."""
+    if cid == "elastic":
+        return None
+    return (ZONES.get((whid, pin)) or {}).get(LANE_COLUMN[cid])
 
-    lanes = (
-        df.loc[df["warehouse_id"].isin(WHIDS), ["warehouse_id", "pincode"]]
-        .drop_duplicates()
-    )
-    lane_fwd, lane_rto = {}, {}
-    n_lanes = len(lanes)
-    for i, (whid, pin) in enumerate(lanes.itertuples(index=False), start=1):
-        fwd, rto = _lane_quotes(int(whid), int(pin))
-        lane_fwd[(int(whid), int(pin))] = _pick(fwd)
-        lane_rto[(int(whid), int(pin))] = _pick(rto)
-        if i % 5000 == 0 or i == n_lanes:
-            print(f"  lanes priced: {i:,}/{n_lanes:,}", flush=True)
-    print("Applying lane costs to shipments ...", flush=True)
 
+def _column_values(df, lane_fwd, lane_rto, carrier=None):
+    """Return (costs, carriers, notes[, zones]) for every shipment row.
+
+    carrier=None            -> cheapest carrier per unique (warehouse_id, pincode)
+    carrier=<active dict>   -> that one carrier's lane charge (unique (WH, pin, carrier))
+    """
     rto_flag = (
         df["shipment_status"].astype(str).eq("Returned")
         | df["latest_secondary_status"].astype(str).str.contains("RTO", case=False, na=False)
@@ -85,50 +91,124 @@ def main():
         | df["rto_received_date"].notna()
     )
 
-    costs, carriers, notes = [], [], []
+    cid = carrier["id"] if carrier is not None else None
+    costs, carriers, notes, zones = [], [], [], []
     for whid, pin, is_rto in zip(
         df["warehouse_id"].astype("Int64"), df["pincode"].astype("Int64"), rto_flag
     ):
         if pd.isna(whid) or pd.isna(pin):
-            costs.append(None); carriers.append(None)
+            costs.append(None); carriers.append(None); zones.append(None)
             notes.append("missing warehouse_id/pincode")
             continue
         whid, pin = int(whid), int(pin)
         if whid not in WHIDS:
-            costs.append(None); carriers.append(None)
+            costs.append(None); carriers.append(None); zones.append(None)
             notes.append("warehouse not on rate card")
             continue
         key = (whid, pin)
-        if is_rto:
-            cost, carrier = lane_rto.get(key, (None, None))
-            note = ("ok" if cost is not None
-                    else ("RTO not quoted on any carrier" if lane_fwd.get(key, (None, None))[0] is not None
-                          else "no servicable carrier on this lane"))
+        quotes = (lane_rto.get(key, {}) if is_rto else lane_fwd.get(key, {}))
+        has_fwd = lane_fwd.get(key, {})
+        had_any = lane_fwd.get(key, {}) or lane_rto.get(key, {})
+        zone = None
+        if carrier is None:
+            cost, disp = _pick(quotes)
+            if cost is None:
+                if is_rto and has_fwd:
+                    note = "RTO not quoted on any carrier"
+                else:
+                    note = "no servicable carrier on this lane"
+            else:
+                note = "ok"
         else:
-            cost, carrier = lane_fwd.get(key, (None, None))
-            note = "ok" if cost is not None else "no servicable carrier on this lane"
-        costs.append(cost); carriers.append(carrier); notes.append(note)
+            cost = quotes.get(cid)
+            disp = DISPLAY[cid]
+            zone = _carrier_zone(whid, pin, cid)
+            if cost is None:
+                if is_rto and cid in has_fwd:
+                    note = "RTO not quoted on this carrier"
+                else:
+                    note = "no servicable rate for this carrier on this lane"
+            else:
+                note = "ok"
+        costs.append(cost); carriers.append(disp); notes.append(note); zones.append(zone)
+    return costs, carriers, notes, zones if cid is not None else None
 
+
+def add_shipping_cost_columns(df, carrier=None):
+    """Shipping cost per shipment.
+
+    carrier=None -> cheapest carrier per unique lane (shipping_cost + shipping_carrier).
+    carrier=<dict> -> that one carrier's lane charge; also appends its lane zone.
+
+    The lane identity spans (warehouse_id, pincode) and, when a carrier is an
+    input, that carrier as well: every unique combination resolves to the
+    charge for exactly that carrier.
+    """
+    df = df.copy()
+    lanes = (
+        df.loc[df["warehouse_id"].isin(WHIDS), ["warehouse_id", "pincode"]]
+        .drop_duplicates()
+    )
+    lane_fwd, lane_rto = {}, {}
+    for whid, pin in lanes.itertuples(index=False):
+        fwd, rto = _lane_quotes(int(whid), int(pin))
+        lane_fwd[(int(whid), int(pin))] = fwd
+        lane_rto[(int(whid), int(pin))] = rto
+
+    costs, carriers, notes, zones = _column_values(df, lane_fwd, lane_rto, carrier)
     df["shipping_cost"] = costs
     df["shipping_carrier"] = carriers
     df["shipping_cost_note"] = notes
+    if zones is not None:
+        df["carrier_zone"] = zones
+    return df
 
-    print("Writing CSV ...", flush=True)
-    df.to_csv(OUT, index=False)
+
+def add_cost_columns(df, carrier=None):
+    df = df.copy()
+    if "rto_marked_on" not in df.columns and "rto_marked_date" in df.columns:
+        df["rto_marked_on"] = df["rto_marked_date"]
+    df = compute_cps(df)
+    df = add_shipping_cost_columns(df, carrier)
+    return df
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Compute per-shipment B2C shipping costs.")
+    parser.add_argument("in_csv", nargs="?", default=SRC, help="input shipment CSV")
+    parser.add_argument("out_csv", nargs="?", default=OUT, help="output CSV")
+    parser.add_argument("--carrier", default=None,
+                        help="only this carrier (id or name, e.g. delhivery); "
+                             "default prices the cheapest carrier per lane")
+    args = parser.parse_args()
+    carrier = resolve_carrier(args.carrier)
+    if args.carrier and carrier is None:
+        print(f"Unknown carrier {args.carrier!r}. Known: "
+              + ", ".join(f"{c['id']} ({c['name']})" for c in DATA["active_carriers"]))
+        raise SystemExit(2)
+
+    print(f"Reading {args.in_csv} ...", flush=True)
+    df = pd.read_csv(args.in_csv, low_memory=False)
+    print(f"Loaded {len(df):,} rows. Computing lane quotes ...", flush=True)
+
+    df = add_cost_columns(df, carrier)
+    df.to_csv(args.out_csv, index=False)
+
+    scope = f"single carrier: {carrier['name']}" if carrier else "cheapest carrier per lane"
     priced = df["shipping_cost"].notna().sum()
-    print(f"rows: {len(df):,}  priced: {priced:,} ({priced/len(df)*100:.1f}%)")
+    print(f"rows: {len(df):,}  priced: {priced:,} ({priced / len(df) * 100:.1f}%)  scope: {scope}")
     print()
     print("blank reasons:")
     print(df["shipping_cost_note"].value_counts().to_string())
     print()
-    print("carrier share of lowest:")
+    print("carrier share:")
     print(df["shipping_carrier"].value_counts().to_string())
     print()
     print("Preview (top rows of the output dataframe):")
     _cols = [
         "order_id", "awb", "carrier_name", "warehouse_id", "warehouse_name",
         "pincode", "shipment_status",
-        "shipping_cost", "shipping_carrier", "shipping_cost_note",
+        "carrier_zone", "shipping_cost", "shipping_carrier", "shipping_cost_note",
     ]
     show = [c for c in _cols if c in df.columns]
     print(df[show].head(10).to_string(index=False), flush=True)
