@@ -10,8 +10,9 @@ Requirements:
 
 Run (daily pull + cost columns):
     python bc_sales_pipeline_single.py [out.csv] [--carrier <carrier>]
-    # --carrier picks ONE carrier (id or name, e.g. delhivery) so every
-    # unique (warehouse_id, pincode, carrier) combo shows that carrier's charge.
+    # --carrier picks ONE carrier (id or name, e.g. delhivery): every shipment
+    # is priced for that carrier at ITS OWN chargeable weight (correct weight
+    # slabs per carrier), and the explicit <carrier>_cost column carries the charge.
     # GOOGLE_APPLICATION_CREDENTIALS must point at your service-account JSON
 
 Prepared from: pricing.py / cps_compute.py / add_shipping_cost.py /
@@ -1421,8 +1422,8 @@ def _pick(quotes: dict):
     return best[1], DISPLAY[best[0]]
 
 
-def _quote(whid: int, pin: int, carrier, movement: str):
-    """quote_carrier result cost for one carrier at QUOTE_WEIGHT (None-safe)."""
+def _quote_at(whid: int, pin: int, carrier, movement: str, weight_kg: float):
+    """quote_carrier result cost for ONE carrier at a given weight (None-safe)."""
     cid = carrier["id"]
     if cid != "elastic":
         zones = ZONES.get((whid, pin)) or {}
@@ -1432,11 +1433,16 @@ def _quote(whid: int, pin: int, carrier, movement: str):
     else:
         zone = None
     res = quote_carrier(
-        carrier, zone, QUOTE_WEIGHT, movement,
+        carrier, zone, weight_kg, movement,
         {"whid": whid, "pin": pin, "volume": dict(DEFAULT_VOLUME), "elastic_service": "standard"},
         DATA,
     )
     return round(float(res["cost"]), 2) if res.get("cost") is not None else None
+
+
+def _quote(whid: int, pin: int, carrier, movement: str):
+    """quote_carrier result cost for one carrier at QUOTE_WEIGHT (None-safe)."""
+    return _quote_at(whid, pin, carrier, movement, QUOTE_WEIGHT)
 
 
 def _lane_quotes(whid: int, pin: int):
@@ -1460,18 +1466,23 @@ def _carrier_zone(whid: int, pin: int, cid: str):
     return (ZONES.get((whid, pin)) or {}).get(LANE_COLUMN[cid])
 
 
+def _is_rto(df):
+    """Row-level RTO flag: shipment status / latest courier status / RTO dates."""
+    return (
+        df["shipment_status"].astype(str).eq("Returned")
+        | df["latest_secondary_status"].astype(str).str.contains("RTO", case=False, na=False)
+        | df["rto_marked_date"].notna()
+        | df["rto_received_date"].notna()
+    )
+
+
 def _column_values(df, lane_fwd, lane_rto, carrier=None):
     """Return (costs, carriers, notes[, zones]) for every shipment row.
 
     carrier=None            -> cheapest carrier per unique (warehouse_id, pincode)
     carrier=<active dict>   -> that one carrier's lane charge (unique (WH, pin, carrier))
     """
-    rto_flag = (
-        df["shipment_status"].astype(str).eq("Returned")
-        | df["latest_secondary_status"].astype(str).str.contains("RTO", case=False, na=False)
-        | df["rto_marked_date"].notna()
-        | df["rto_received_date"].notna()
-    )
+    rto_flag = _is_rto(df)
 
     cid = carrier["id"] if carrier is not None else None
     costs, carriers, notes, zones = [], [], [], []
@@ -1546,12 +1557,78 @@ def add_shipping_cost_columns(df, carrier=None):
     return df
 
 
+def add_carrier_cost_columns(df, carrier, weight_col="chargeable_weight_kg"):
+    """One chosen carrier, priced PER SHIPMENT at that shipment's own chargeable
+    weight.  Correct per-carrier weight slabs therefore apply to every row
+    (e.g. DTDC flat first-5000g, Ekart 0-5kg base then per-500g, Bluedart min
+    1kg then 500g slabs, Amazon +15/kg above 2kg, Delhivery/Shadowfax flat),
+    instead of the lane-level QUOTE_WEIGHT used by the cheapest-carrier mode.
+
+    Appends:
+      shipping_cost / shipping_carrier / shipping_cost_note  (same names as the
+        cheapest mode, but shipping_cost is that carrier's charge for this row)
+      carrier_zone            -> zone used for the carrier on this lane
+      <carrier_id>_cost       -> duplicated as an explicit carrier-named column
+      <carrier_id>_zone       -> explicit zone column
+      <carrier_id>_note       -> explicit note column
+    """
+    df = df.copy()
+    cid = carrier["id"]
+    cname = DISPLAY[cid]
+    if weight_col not in df.columns:
+        df[weight_col] = QUOTE_WEIGHT
+
+    costs, carriers, notes, zones = [], [], [], []
+    for whid, pin, w, is_rto in zip(
+        df["warehouse_id"].astype("Int64"),
+        df["pincode"].astype("Int64"),
+        df[weight_col],
+        _is_rto(df),
+    ):
+        if pd.isna(whid) or pd.isna(pin):
+            costs.append(None); carriers.append(cname); zones.append(None)
+            notes.append("missing warehouse_id/pincode")
+            continue
+        whid, pin = int(whid), int(pin)
+        if whid not in WHIDS:
+            costs.append(None); carriers.append(cname); zones.append(None)
+            notes.append("warehouse not on rate card")
+            continue
+        zone = _carrier_zone(whid, pin, cid)
+        if w is None or pd.isna(w):
+            costs.append(None); carriers.append(cname); zones.append(zone)
+            notes.append("no valid weight/vol_weight")
+            continue
+        movement = "RTO" if is_rto else "Fwd"
+        cost = _quote_at(whid, pin, carrier, movement, float(w))
+        if cost is None:
+            if is_rto:
+                note = "RTO not quoted on this carrier"
+            else:
+                note = "no servicable rate for this carrier at this weight"
+        else:
+            note = "ok"
+        costs.append(cost); carriers.append(cname); notes.append(note); zones.append(zone)
+
+    df["shipping_cost"] = costs
+    df["shipping_carrier"] = carriers
+    df["shipping_cost_note"] = notes
+    df["carrier_zone"] = zones
+    df[f"{cid}_cost"] = costs
+    df[f"{cid}_zone"] = zones
+    df[f"{cid}_note"] = notes
+    return df
+
+
 def add_cost_columns(df, carrier=None):
     df = df.copy()
     if "rto_marked_on" not in df.columns and "rto_marked_date" in df.columns:
         df["rto_marked_on"] = df["rto_marked_date"]
     df = compute_cps(df)
-    df = add_shipping_cost_columns(df, carrier)
+    if carrier is None:
+        df = add_shipping_cost_columns(df)
+    else:
+        df = add_carrier_cost_columns(df, carrier)
     return df
 
 
@@ -1564,8 +1641,7 @@ WHIDS = {w for (w, _) in ZONES}
 _ORDER = {cid: i for i, cid in enumerate(DISPLAY)}
 
 
-SQL_QUERY = """\
-WITH filtered_base AS (
+SQL_QUERY = """WITH filtered_base AS (
   SELECT 
     sho.id AS child_shipment_id,
     sho.order_id,
@@ -1607,6 +1683,8 @@ WITH filtered_base AS (
         BETWEEN DATE_SUB(CURRENT_DATE('Asia/Kolkata'), INTERVAL 25 DAY) 
             AND CURRENT_DATE('Asia/Kolkata')
 ),
+
+-- 2. Aggregated Order Items & EDD details
 order_items_agg AS (
   SELECT 
     shoi.shiporder_id,
@@ -1620,6 +1698,8 @@ order_items_agg AS (
     ON fb.child_shipment_id = shoi.shiporder_id
   GROUP BY shoi.shiporder_id
 ),
+
+-- 3. Pre-aggregated Hub ID mapping
 hub_mapping AS (
   SELECT 
     order_id,
@@ -1628,6 +1708,8 @@ hub_mapping AS (
   WHERE order_id IN (SELECT order_id FROM filtered_base)
   GROUP BY order_id
 ),
+
+-- 4. Unified Status Change Log CTE
 consolidated_status_logs AS (
   SELECT 
     module,
@@ -1647,6 +1729,8 @@ consolidated_status_logs AS (
   )
   GROUP BY module, clean_module_id
 ),
+
+-- 5. Consolidated Master Shipment Details
 master_details AS (
   SELECT 
     id, 
@@ -1654,6 +1738,8 @@ master_details AS (
     awb 
   FROM `datapipelineproduction.datos_deposito_banco.purplle_purplle2_master_shipment_detail`
 ),
+
+-- 6. Picklist Info
 picklist_info AS (
   SELECT 
     pps.shipment_id,
@@ -1664,6 +1750,8 @@ picklist_info AS (
   WHERE pps.shipment_id IN (SELECT child_shipment_id FROM filtered_base)
   GROUP BY pps.shipment_id
 ),
+
+-- 7. Courier Shipment Status Updates
 latest_courier_status AS (
   SELECT awb, primary_status, secondary_status, status_date_time
   FROM (
@@ -1674,12 +1762,16 @@ latest_courier_status AS (
   )
   WHERE rn = 1
 ),
+
+-- 8. RTO Marked Time
 rto_marked_info AS (
   SELECT awb, MIN(time) AS rto_marked_time
   FROM `datapipelineproduction.datos_deposito_banco.purplle_purplle2_courier_shipment_status`
   WHERE secondary_status = 'RTO-Marked'
   GROUP BY awb
 ),
+
+-- 9. Dynamic Metrics CTE
 calculated_metrics AS (
   SELECT
     fb.master_shipment_id,
@@ -1691,54 +1783,74 @@ calculated_metrics AS (
     fb.invoice_value,
     fb.weight,
     fb.vol_weight,
+    
+    -- CPT Dates & Timestamps
     SAFE_CAST(cpt.cpt_date AS DATE) AS cpt_date,
     DATETIME(cpt.handover_date, 'Asia/Kolkata') AS cpt_handover_date,
+    
+    -- Latest Log
     COALESCE(lsc_ship.latest_log.status, lsc_ord.latest_log.status) AS latest_log_status,
     DATETIME(TIMESTAMP_SECONDS(COALESCE(lsc_ship.latest_log.clean_timestamp, lsc_ord.latest_log.clean_timestamp)), 'Asia/Kolkata') AS latest_log_time,
+    
+    -- Courier Status
     lcs.primary_status AS latest_primary_status,
     lcs.secondary_status AS latest_secondary_status,
+
     fb.fulfillment_type,
     fb.warehouse_id,
     wh.name AS warehouse_name,
     wh.postal_code,
     hub.hub_id,
+
     dim_region.city_name AS ship_city,
     fb.ship_postal_code AS pincode,
     dim_region.state_name AS state,
+
     COALESCE(fb.sho_carrier_id, msd.carrier_id) AS carrier_id,
     sc.name AS carrier_name,
     pp.picklist_carrier_id,
     IF(fb.firstorder_timestamp = fb.order_timestamp, 'FT', 'RB') AS FT_RB_FLAG,
+    
     IF(
       COALESCE(CAST(COALESCE(fb.sho_carrier_id, msd.carrier_id) AS STRING), '') <> COALESCE(CAST(pp.picklist_carrier_id AS STRING), ''),
       1, 0
     ) AS carrier_switch,
+
     fb.order_type,
     IF(cc.is_retailer = 1, 'Retailer', 'Non-Retailer') AS is_retailer,
     fb.payment_method,
+
+    -- Formatted Timestamps (Converted to IST Datetime)
     DATETIME(TIMESTAMP_SECONDS(CAST(fb.order_timestamp AS INT64)), 'Asia/Kolkata') AS order_time,
     DATETIME(TIMESTAMP_SECONDS(lsc_ship.handover_ts), 'Asia/Kolkata') AS lsc_handover_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.pickedup_time AS INT64)), 'Asia/Kolkata') AS pickup_time,
     IF(fb.dispatch_time IS NULL OR fb.dispatch_time = 0, NULL, DATETIME(TIMESTAMP_SECONDS(CAST(fb.dispatch_time AS INT64)), 'Asia/Kolkata')) AS dispatch_time,
     DATETIME(TIMESTAMP_SECONDS(lsc_ship.dispatched_ts), 'Asia/Kolkata') AS lsc_dispatched_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.intransit_time AS INT64)), 'Asia/Kolkata') AS intransit_time,
+
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.OFD1_timestamp AS INT64)), 'Asia/Kolkata') AS ofd1_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.OFD2_timestamp AS INT64)), 'Asia/Kolkata') AS ofd2_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.OFD3_timestamp AS INT64)), 'Asia/Kolkata') AS ofd3_time,
-    IF(fb.delivery_timestamp IS NULL OR fb.delivery_timestamp = 0, NULL, DATETIME(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata')) AS delivery_time,
+
+    DATETIME(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata') AS delivery_time,
     DATETIME(TIMESTAMP_SECONDS(lsc_ship.delivered_ts), 'Asia/Kolkata') AS lsc_delivered_time,
+
     DATETIME(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') AS edd_max_time,
     DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') AS edd_date,
     DATE(TIMESTAMP_SECONDS(oi.update_max_tat), 'Asia/Kolkata') AS updated_edd_max,
+
     DATE(TIMESTAMP_SECONDS(CAST(rmi.rto_marked_time AS INT64)), 'Asia/Kolkata') AS rto_marked_date,
     DATE(TIMESTAMP_SECONDS(CAST(ril.created_on AS INT64)), 'Asia/Kolkata') AS rto_received_date,
     DATETIME(TIMESTAMP_SECONDS(CAST(ril.created_on AS INT64)), 'Asia/Kolkata') AS rto_received_time,
     DATE(TIMESTAMP_SECONDS(CAST(riil.inwarded_at AS INT64)), 'Asia/Kolkata') AS rto_inward_date,
     DATETIME(TIMESTAMP_SECONDS(CAST(riil.inwarded_at AS INT64)), 'Asia/Kolkata') AS rto_inward_time,
+
     wtd.no_of_attempts AS total_attempts,
     fb.tenant,
     fb.sub_tenant,
     oi.shipment_quantity,
+
+    -- CPT Breach
     CASE
       WHEN DATETIME(cpt.handover_date, 'Asia/Kolkata') > DATETIME(cpt.handover_cutoff_datetime, 'Asia/Kolkata') THEN 1
       WHEN DATETIME(cpt.handover_date, 'Asia/Kolkata') <= DATETIME(cpt.handover_cutoff_datetime, 'Asia/Kolkata') THEN 0
@@ -1746,30 +1858,30 @@ calculated_metrics AS (
            AND DATETIME(cpt.handover_cutoff_datetime, 'Asia/Kolkata') < CURRENT_DATETIME('Asia/Kolkata') THEN 1
       ELSE 0
     END AS cpt_breach,
+
+    -- EDD Breach
     CASE
-      WHEN (fb.delivery_timestamp IS NULL OR fb.delivery_timestamp = 0) 
-           AND CURRENT_DATE('Asia/Kolkata') > DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') THEN 1
       WHEN DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') > CURRENT_DATE('Asia/Kolkata') THEN 0
       WHEN fb.shipment_status IN ('Delivered', 'Lost', 'Returned', 'In Transit')
            AND COALESCE(
                  DATE(TIMESTAMP_SECONDS(CAST(wtd.OFD1_timestamp AS INT64)), 'Asia/Kolkata'), 
                  DATE(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata')
                ) <= DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata')
-           AND COALESCE(NULLIF(wtd.OFD1_timestamp, 0), NULLIF(fb.delivery_timestamp, 0)) IS NOT NULL THEN 0
+           AND COALESCE(wtd.OFD1_timestamp, fb.delivery_timestamp) IS NOT NULL THEN 0
       WHEN fb.shipment_status IN ('Returned', 'In Transit')
-           AND (wtd.OFD1_timestamp IS NULL OR wtd.OFD1_timestamp = 0)
+           AND wtd.OFD1_timestamp IS NULL
            AND DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') > CURRENT_DATE('Asia/Kolkata') THEN 0
       ELSE 1
     END AS edd_breach,
+
+    -- OTIF Breach
     CASE
-      WHEN (fb.delivery_timestamp IS NULL OR fb.delivery_timestamp = 0) 
-           AND CURRENT_DATE('Asia/Kolkata') > DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') THEN 1
       WHEN DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') > CURRENT_DATE('Asia/Kolkata') THEN 0
       WHEN fb.delivery_timestamp IS NOT NULL 
-           AND fb.delivery_timestamp > 0
            AND DATE(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata') <= DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') THEN 0
       ELSE 1
     END AS otif_breach
+
   FROM filtered_base fb
   LEFT JOIN order_items_agg oi 
     ON oi.shiporder_id = fb.child_shipment_id
@@ -1817,6 +1929,8 @@ calculated_metrics AS (
   LEFT JOIN `datapipelineproduction.datos_studios.fc_cpt_new_automation_fk` cpt 
     ON SAFE_CAST(REGEXP_REPLACE(CAST(cpt.shipment_id AS STRING), r'[^0-9]', '') AS INT64) = fb.child_shipment_id
 )
+
+-- 10. Final Projection
 SELECT
   master_shipment_id,
   child_shipment_id,
@@ -1852,17 +1966,21 @@ SELECT
   lsc_handover_time,
   pickup_time,
   dispatch_time,
+  lsc_dispatched_time,
   intransit_time,
   ofd1_time,
   ofd2_time,
   ofd3_time,
   delivery_time,
+  lsc_delivered_time,
   edd_max_time,
   edd_date,
   updated_edd_max,
   rto_marked_date,
   rto_received_date,
+  rto_received_time,
   rto_inward_date,
+  rto_inward_time,
   total_attempts,
   tenant,
   sub_tenant,
@@ -1870,12 +1988,14 @@ SELECT
   cpt_breach,
   edd_breach,
   otif_breach,
+  
   CASE 
     WHEN cpt_breach = 1 AND edd_breach = 0 THEN 'cpt_breach'
     WHEN cpt_breach = 0 AND edd_breach = 1 THEN 'ops_breach'
     WHEN cpt_breach = 1 AND edd_breach = 1 THEN 'cpt_breach'
     ELSE 'no_breach'
   END AS breach_type
+
 FROM calculated_metrics
 ORDER BY edd_date DESC, effective_shipment_id;"""
 
@@ -1904,6 +2024,9 @@ def build_df_from_query(carrier=None):
                            "carrier_zone", "shipping_cost", "shipping_carrier",
                            "shipping_cost_note"]
                if c in df.columns]
+    if carrier is not None:
+        preview += [c for c in [f"{carrier['id']}_cost", f"{carrier['id']}_zone"]
+                    if c in df.columns]
     print("\nPreview (top rows of the dataframe with the cost columns):")
     print(df[preview].head(10).to_string(index=False))
     print()

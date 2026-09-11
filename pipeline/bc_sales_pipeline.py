@@ -149,8 +149,7 @@ def add_cost_columns(df):
 # 1. RUN QUERY & SAVE TO CSV
 # ==============================================================================
 def _query_df():
-    sql_query = """\
-WITH filtered_base AS (
+    sql_query = """WITH filtered_base AS (
   SELECT 
     sho.id AS child_shipment_id,
     sho.order_id,
@@ -192,6 +191,8 @@ WITH filtered_base AS (
         BETWEEN DATE_SUB(CURRENT_DATE('Asia/Kolkata'), INTERVAL 25 DAY) 
             AND CURRENT_DATE('Asia/Kolkata')
 ),
+
+-- 2. Aggregated Order Items & EDD details
 order_items_agg AS (
   SELECT 
     shoi.shiporder_id,
@@ -205,6 +206,8 @@ order_items_agg AS (
     ON fb.child_shipment_id = shoi.shiporder_id
   GROUP BY shoi.shiporder_id
 ),
+
+-- 3. Pre-aggregated Hub ID mapping
 hub_mapping AS (
   SELECT 
     order_id,
@@ -213,6 +216,8 @@ hub_mapping AS (
   WHERE order_id IN (SELECT order_id FROM filtered_base)
   GROUP BY order_id
 ),
+
+-- 4. Unified Status Change Log CTE
 consolidated_status_logs AS (
   SELECT 
     module,
@@ -232,6 +237,8 @@ consolidated_status_logs AS (
   )
   GROUP BY module, clean_module_id
 ),
+
+-- 5. Consolidated Master Shipment Details
 master_details AS (
   SELECT 
     id, 
@@ -239,6 +246,8 @@ master_details AS (
     awb 
   FROM `datapipelineproduction.datos_deposito_banco.purplle_purplle2_master_shipment_detail`
 ),
+
+-- 6. Picklist Info
 picklist_info AS (
   SELECT 
     pps.shipment_id,
@@ -249,6 +258,8 @@ picklist_info AS (
   WHERE pps.shipment_id IN (SELECT child_shipment_id FROM filtered_base)
   GROUP BY pps.shipment_id
 ),
+
+-- 7. Courier Shipment Status Updates
 latest_courier_status AS (
   SELECT awb, primary_status, secondary_status, status_date_time
   FROM (
@@ -259,12 +270,16 @@ latest_courier_status AS (
   )
   WHERE rn = 1
 ),
+
+-- 8. RTO Marked Time
 rto_marked_info AS (
   SELECT awb, MIN(time) AS rto_marked_time
   FROM `datapipelineproduction.datos_deposito_banco.purplle_purplle2_courier_shipment_status`
   WHERE secondary_status = 'RTO-Marked'
   GROUP BY awb
 ),
+
+-- 9. Dynamic Metrics CTE
 calculated_metrics AS (
   SELECT
     fb.master_shipment_id,
@@ -276,54 +291,74 @@ calculated_metrics AS (
     fb.invoice_value,
     fb.weight,
     fb.vol_weight,
+    
+    -- CPT Dates & Timestamps
     SAFE_CAST(cpt.cpt_date AS DATE) AS cpt_date,
     DATETIME(cpt.handover_date, 'Asia/Kolkata') AS cpt_handover_date,
+    
+    -- Latest Log
     COALESCE(lsc_ship.latest_log.status, lsc_ord.latest_log.status) AS latest_log_status,
     DATETIME(TIMESTAMP_SECONDS(COALESCE(lsc_ship.latest_log.clean_timestamp, lsc_ord.latest_log.clean_timestamp)), 'Asia/Kolkata') AS latest_log_time,
+    
+    -- Courier Status
     lcs.primary_status AS latest_primary_status,
     lcs.secondary_status AS latest_secondary_status,
+
     fb.fulfillment_type,
     fb.warehouse_id,
     wh.name AS warehouse_name,
     wh.postal_code,
     hub.hub_id,
+
     dim_region.city_name AS ship_city,
     fb.ship_postal_code AS pincode,
     dim_region.state_name AS state,
+
     COALESCE(fb.sho_carrier_id, msd.carrier_id) AS carrier_id,
     sc.name AS carrier_name,
     pp.picklist_carrier_id,
     IF(fb.firstorder_timestamp = fb.order_timestamp, 'FT', 'RB') AS FT_RB_FLAG,
+    
     IF(
       COALESCE(CAST(COALESCE(fb.sho_carrier_id, msd.carrier_id) AS STRING), '') <> COALESCE(CAST(pp.picklist_carrier_id AS STRING), ''),
       1, 0
     ) AS carrier_switch,
+
     fb.order_type,
     IF(cc.is_retailer = 1, 'Retailer', 'Non-Retailer') AS is_retailer,
     fb.payment_method,
+
+    -- Formatted Timestamps (Converted to IST Datetime)
     DATETIME(TIMESTAMP_SECONDS(CAST(fb.order_timestamp AS INT64)), 'Asia/Kolkata') AS order_time,
     DATETIME(TIMESTAMP_SECONDS(lsc_ship.handover_ts), 'Asia/Kolkata') AS lsc_handover_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.pickedup_time AS INT64)), 'Asia/Kolkata') AS pickup_time,
     IF(fb.dispatch_time IS NULL OR fb.dispatch_time = 0, NULL, DATETIME(TIMESTAMP_SECONDS(CAST(fb.dispatch_time AS INT64)), 'Asia/Kolkata')) AS dispatch_time,
     DATETIME(TIMESTAMP_SECONDS(lsc_ship.dispatched_ts), 'Asia/Kolkata') AS lsc_dispatched_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.intransit_time AS INT64)), 'Asia/Kolkata') AS intransit_time,
+
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.OFD1_timestamp AS INT64)), 'Asia/Kolkata') AS ofd1_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.OFD2_timestamp AS INT64)), 'Asia/Kolkata') AS ofd2_time,
     DATETIME(TIMESTAMP_SECONDS(CAST(wtd.OFD3_timestamp AS INT64)), 'Asia/Kolkata') AS ofd3_time,
-    IF(fb.delivery_timestamp IS NULL OR fb.delivery_timestamp = 0, NULL, DATETIME(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata')) AS delivery_time,
+
+    DATETIME(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata') AS delivery_time,
     DATETIME(TIMESTAMP_SECONDS(lsc_ship.delivered_ts), 'Asia/Kolkata') AS lsc_delivered_time,
+
     DATETIME(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') AS edd_max_time,
     DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') AS edd_date,
     DATE(TIMESTAMP_SECONDS(oi.update_max_tat), 'Asia/Kolkata') AS updated_edd_max,
+
     DATE(TIMESTAMP_SECONDS(CAST(rmi.rto_marked_time AS INT64)), 'Asia/Kolkata') AS rto_marked_date,
     DATE(TIMESTAMP_SECONDS(CAST(ril.created_on AS INT64)), 'Asia/Kolkata') AS rto_received_date,
     DATETIME(TIMESTAMP_SECONDS(CAST(ril.created_on AS INT64)), 'Asia/Kolkata') AS rto_received_time,
     DATE(TIMESTAMP_SECONDS(CAST(riil.inwarded_at AS INT64)), 'Asia/Kolkata') AS rto_inward_date,
     DATETIME(TIMESTAMP_SECONDS(CAST(riil.inwarded_at AS INT64)), 'Asia/Kolkata') AS rto_inward_time,
+
     wtd.no_of_attempts AS total_attempts,
     fb.tenant,
     fb.sub_tenant,
     oi.shipment_quantity,
+
+    -- CPT Breach
     CASE
       WHEN DATETIME(cpt.handover_date, 'Asia/Kolkata') > DATETIME(cpt.handover_cutoff_datetime, 'Asia/Kolkata') THEN 1
       WHEN DATETIME(cpt.handover_date, 'Asia/Kolkata') <= DATETIME(cpt.handover_cutoff_datetime, 'Asia/Kolkata') THEN 0
@@ -331,30 +366,30 @@ calculated_metrics AS (
            AND DATETIME(cpt.handover_cutoff_datetime, 'Asia/Kolkata') < CURRENT_DATETIME('Asia/Kolkata') THEN 1
       ELSE 0
     END AS cpt_breach,
+
+    -- EDD Breach
     CASE
-      WHEN (fb.delivery_timestamp IS NULL OR fb.delivery_timestamp = 0) 
-           AND CURRENT_DATE('Asia/Kolkata') > DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') THEN 1
       WHEN DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') > CURRENT_DATE('Asia/Kolkata') THEN 0
       WHEN fb.shipment_status IN ('Delivered', 'Lost', 'Returned', 'In Transit')
            AND COALESCE(
                  DATE(TIMESTAMP_SECONDS(CAST(wtd.OFD1_timestamp AS INT64)), 'Asia/Kolkata'), 
                  DATE(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata')
                ) <= DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata')
-           AND COALESCE(NULLIF(wtd.OFD1_timestamp, 0), NULLIF(fb.delivery_timestamp, 0)) IS NOT NULL THEN 0
+           AND COALESCE(wtd.OFD1_timestamp, fb.delivery_timestamp) IS NOT NULL THEN 0
       WHEN fb.shipment_status IN ('Returned', 'In Transit')
-           AND (wtd.OFD1_timestamp IS NULL OR wtd.OFD1_timestamp = 0)
+           AND wtd.OFD1_timestamp IS NULL
            AND DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') > CURRENT_DATE('Asia/Kolkata') THEN 0
       ELSE 1
     END AS edd_breach,
+
+    -- OTIF Breach
     CASE
-      WHEN (fb.delivery_timestamp IS NULL OR fb.delivery_timestamp = 0) 
-           AND CURRENT_DATE('Asia/Kolkata') > DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') THEN 1
       WHEN DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') > CURRENT_DATE('Asia/Kolkata') THEN 0
       WHEN fb.delivery_timestamp IS NOT NULL 
-           AND fb.delivery_timestamp > 0
            AND DATE(TIMESTAMP_SECONDS(CAST(fb.delivery_timestamp AS INT64)), 'Asia/Kolkata') <= DATE(TIMESTAMP_SECONDS(oi.edd_max_tat), 'Asia/Kolkata') THEN 0
       ELSE 1
     END AS otif_breach
+
   FROM filtered_base fb
   LEFT JOIN order_items_agg oi 
     ON oi.shiporder_id = fb.child_shipment_id
@@ -402,6 +437,8 @@ calculated_metrics AS (
   LEFT JOIN `datapipelineproduction.datos_studios.fc_cpt_new_automation_fk` cpt 
     ON SAFE_CAST(REGEXP_REPLACE(CAST(cpt.shipment_id AS STRING), r'[^0-9]', '') AS INT64) = fb.child_shipment_id
 )
+
+-- 10. Final Projection
 SELECT
   master_shipment_id,
   child_shipment_id,
@@ -437,17 +474,21 @@ SELECT
   lsc_handover_time,
   pickup_time,
   dispatch_time,
+  lsc_dispatched_time,
   intransit_time,
   ofd1_time,
   ofd2_time,
   ofd3_time,
   delivery_time,
+  lsc_delivered_time,
   edd_max_time,
   edd_date,
   updated_edd_max,
   rto_marked_date,
   rto_received_date,
+  rto_received_time,
   rto_inward_date,
+  rto_inward_time,
   total_attempts,
   tenant,
   sub_tenant,
@@ -455,15 +496,16 @@ SELECT
   cpt_breach,
   edd_breach,
   otif_breach,
+  
   CASE 
     WHEN cpt_breach = 1 AND edd_breach = 0 THEN 'cpt_breach'
     WHEN cpt_breach = 0 AND edd_breach = 1 THEN 'ops_breach'
     WHEN cpt_breach = 1 AND edd_breach = 1 THEN 'cpt_breach'
     ELSE 'no_breach'
   END AS breach_type
+
 FROM calculated_metrics
-ORDER BY edd_date DESC, effective_shipment_id;
-"""
+ORDER BY edd_date DESC, effective_shipment_id;"""
     print("Executing query...")
     if bigquery is None:
         raise ImportError("google-cloud-bigquery not installed - run: pip install -r pipeline/requirements.txt")

@@ -39,8 +39,8 @@ def _pick(quotes: dict):
     return best[1], DISPLAY[best[0]]
 
 
-def _quote(whid: int, pin: int, carrier, movement: str):
-    """quote_carrier result cost for one carrier at QUOTE_WEIGHT (None-safe)."""
+def _quote_at(whid: int, pin: int, carrier, movement: str, weight_kg: float):
+    """quote_carrier result cost for ONE carrier at a given weight (None-safe)."""
     cid = carrier["id"]
     if cid != "elastic":
         zones = ZONES.get((whid, pin)) or {}
@@ -50,11 +50,16 @@ def _quote(whid: int, pin: int, carrier, movement: str):
     else:
         zone = None
     res = pricing.quote_carrier(
-        carrier, zone, QUOTE_WEIGHT, movement,
+        carrier, zone, weight_kg, movement,
         {"whid": whid, "pin": pin, "volume": dict(DEFAULT_VOLUME), "elastic_service": "standard"},
         DATA,
     )
     return round(float(res["cost"]), 2) if res.get("cost") is not None else None
+
+
+def _quote(whid: int, pin: int, carrier, movement: str):
+    """quote_carrier result cost for one carrier at QUOTE_WEIGHT (None-safe)."""
+    return _quote_at(whid, pin, carrier, movement, QUOTE_WEIGHT)
 
 
 def _lane_quotes(whid: int, pin: int):
@@ -78,18 +83,23 @@ def _carrier_zone(whid: int, pin: int, cid: str):
     return (ZONES.get((whid, pin)) or {}).get(LANE_COLUMN[cid])
 
 
+def _is_rto(df):
+    """Row-level RTO flag: shipment status / latest courier status / RTO dates."""
+    return (
+        df["shipment_status"].astype(str).eq("Returned")
+        | df["latest_secondary_status"].astype(str).str.contains("RTO", case=False, na=False)
+        | df["rto_marked_date"].notna()
+        | df["rto_received_date"].notna()
+    )
+
+
 def _column_values(df, lane_fwd, lane_rto, carrier=None):
     """Return (costs, carriers, notes[, zones]) for every shipment row.
 
     carrier=None            -> cheapest carrier per unique (warehouse_id, pincode)
     carrier=<active dict>   -> that one carrier's lane charge (unique (WH, pin, carrier))
     """
-    rto_flag = (
-        df["shipment_status"].astype(str).eq("Returned")
-        | df["latest_secondary_status"].astype(str).str.contains("RTO", case=False, na=False)
-        | df["rto_marked_date"].notna()
-        | df["rto_received_date"].notna()
-    )
+    rto_flag = _is_rto(df)
 
     cid = carrier["id"] if carrier is not None else None
     costs, carriers, notes, zones = [], [], [], []
@@ -164,12 +174,78 @@ def add_shipping_cost_columns(df, carrier=None):
     return df
 
 
+def add_carrier_cost_columns(df, carrier, weight_col="chargeable_weight_kg"):
+    """One chosen carrier, priced PER SHIPMENT at that shipment's own chargeable
+    weight.  Correct per-carrier weight slabs therefore apply to every row
+    (e.g. DTDC flat first-5000g, Ekart 0-5kg base then per-500g, Bluedart min
+    1kg then 500g slabs, Amazon +15/kg above 2kg, Delhivery/Shadowfax flat),
+    instead of the lane-level QUOTE_WEIGHT used by the cheapest-carrier mode.
+
+    Appends:
+      shipping_cost / shipping_carrier / shipping_cost_note  (same names as the
+        cheapest mode, but shipping_cost is that carrier's charge for this row)
+      carrier_zone            -> zone used for the carrier on this lane
+      <carrier_id>_cost       -> duplicated as an explicit carrier-named column
+      <carrier_id>_zone       -> explicit zone column
+      <carrier_id>_note       -> explicit note column
+    """
+    df = df.copy()
+    cid = carrier["id"]
+    cname = DISPLAY[cid]
+    if weight_col not in df.columns:
+        df[weight_col] = QUOTE_WEIGHT
+
+    costs, carriers, notes, zones = [], [], [], []
+    for whid, pin, w, is_rto in zip(
+        df["warehouse_id"].astype("Int64"),
+        df["pincode"].astype("Int64"),
+        df[weight_col],
+        _is_rto(df),
+    ):
+        if pd.isna(whid) or pd.isna(pin):
+            costs.append(None); carriers.append(cname); zones.append(None)
+            notes.append("missing warehouse_id/pincode")
+            continue
+        whid, pin = int(whid), int(pin)
+        if whid not in WHIDS:
+            costs.append(None); carriers.append(cname); zones.append(None)
+            notes.append("warehouse not on rate card")
+            continue
+        zone = _carrier_zone(whid, pin, cid)
+        if w is None or pd.isna(w):
+            costs.append(None); carriers.append(cname); zones.append(zone)
+            notes.append("no valid weight/vol_weight")
+            continue
+        movement = "RTO" if is_rto else "Fwd"
+        cost = _quote_at(whid, pin, carrier, movement, float(w))
+        if cost is None:
+            if is_rto:
+                note = "RTO not quoted on this carrier"
+            else:
+                note = "no servicable rate for this carrier at this weight"
+        else:
+            note = "ok"
+        costs.append(cost); carriers.append(cname); notes.append(note); zones.append(zone)
+
+    df["shipping_cost"] = costs
+    df["shipping_carrier"] = carriers
+    df["shipping_cost_note"] = notes
+    df["carrier_zone"] = zones
+    df[f"{cid}_cost"] = costs
+    df[f"{cid}_zone"] = zones
+    df[f"{cid}_note"] = notes
+    return df
+
+
 def add_cost_columns(df, carrier=None):
     df = df.copy()
     if "rto_marked_on" not in df.columns and "rto_marked_date" in df.columns:
         df["rto_marked_on"] = df["rto_marked_date"]
     df = compute_cps(df)
-    df = add_shipping_cost_columns(df, carrier)
+    if carrier is None:
+        df = add_shipping_cost_columns(df)
+    else:
+        df = add_carrier_cost_columns(df, carrier)
     return df
 
 
@@ -207,9 +283,11 @@ def main():
     print("Preview (top rows of the output dataframe):")
     _cols = [
         "order_id", "awb", "carrier_name", "warehouse_id", "warehouse_name",
-        "pincode", "shipment_status",
+        "pincode", "shipment_status", "chargeable_weight_kg",
         "carrier_zone", "shipping_cost", "shipping_carrier", "shipping_cost_note",
     ]
+    if carrier is not None:
+        _cols += [f"{carrier['id']}_cost", f"{carrier['id']}_zone"]
     show = [c for c in _cols if c in df.columns]
     print(df[show].head(10).to_string(index=False), flush=True)
 

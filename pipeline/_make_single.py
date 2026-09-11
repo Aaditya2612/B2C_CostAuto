@@ -136,8 +136,9 @@ Requirements:
 
 Run (daily pull + cost columns):
     python bc_sales_pipeline_single.py [out.csv] [--carrier <carrier>]
-    # --carrier picks ONE carrier (id or name, e.g. delhivery) so every
-    # unique (warehouse_id, pincode, carrier) combo shows that carrier's charge.
+    # --carrier picks ONE carrier (id or name, e.g. delhivery): every shipment
+    # is priced for that carrier at ITS OWN chargeable weight (correct weight
+    # slabs per carrier), and the explicit <carrier>_cost column carries the charge.
     # GOOGLE_APPLICATION_CREDENTIALS must point at your service-account JSON
 
 Prepared from: pricing.py / cps_compute.py / add_shipping_cost.py /
@@ -218,6 +219,9 @@ LANES_KEYS = {LANE_KEYS!r}
                            "carrier_zone", "shipping_cost", "shipping_carrier",
                            "shipping_cost_note"]
                if c in df.columns]
+    if carrier is not None:
+        preview += [c for c in [f"{carrier['id']}_cost", f"{carrier['id']}_zone"]
+                    if c in df.columns]
     print("\\nPreview (top rows of the dataframe with the cost columns):")
     print(df[preview].head(10).to_string(index=False))
     print()
