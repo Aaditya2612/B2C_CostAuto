@@ -13,7 +13,6 @@
       <div class="logo" aria-hidden="true"><img src="static/purplle_icon.svg" alt="" /></div>
       <h1>B2C Logistics Cost Calculator</h1>
     </div>
-    <button id="assumptions-toggle" class="btn ghost" type="button">Assumptions &amp; notes</button>
   </header>
 
   <section class="controls">
@@ -57,21 +56,6 @@
       <tbody id="tbody"></tbody>
     </table>
     <p id="cheapest" class="cheapest"></p>
-  </section>
-
-  <section id="assumptions" class="notes" hidden>
-    <h3>Assumptions &amp; notes taken from the sheets</h3>
-    <ul>
-      <li>Only carriers that have a commercial sheet in the B2C workbook are quoted: Delhivery, Blue Dart (Dart Plus), DTDC, Ekart, Shadowfax, Amazon, Elastic Run. The workbook's Carrier List flags are not used.</li>
-      <li>Delhivery Surface (W.E.F 01-02-2024): forward is a flat per-shipment rate (additional weight slabs are Rs 0 on the card). Zones A/B use X/Y, which depend on the monthly volume slab: 1-3 Lakh &rarr; X=35, Y=42; &ge;3 Lakh &rarr; X=31, Y=38.5. The retired &lt;1 Lakh slab ("Existing Rate Card, Table B") is not offered. Zones C1&ndash;F are the same for every slab; RTO is Rs 0; Guwahati B_SPL is Rs 42/shipment. The SDD/NDD entries on the sheet (Delhivery_MM / Delhivery_NDD columns) are separate products and not quoted.</li>
-      <li>Blue Dart (Dart Plus): min chargeable 1 kg; then every additional 500 g slab. RTO = 70% of forward rates. Volume discounts apply on freight. Cash-on-delivery fee (1.2% or min INR 15) is not included &mdash; it depends on the collectible amount, not on weight. Rates valid till 31-Dec-2025.</li>
-      <li>DTDC (w.e.f 21-May-2025): flat Rs 34.9 for first 5,000 g, additional 1,000 g at Rs 0, across all categories; forward movement only. The sheet's "Siliguri DS MFC location Rs 40 (from Feb 2026)" special is applied to destination pincodes in the Siliguri region (prefix 734).</li>
-      <li>Ekart: base Rs 41 for 0&ndash;5 kg then Rs 7 per 500 g, inclusive of forward, COD &amp; RTO (no separate DTO). The volume-discount table from the sheet is selectable ("From Jul'26 onwards": &ge;2,00,000/mo Rs 38, &ge;4,00,000/mo Rs 37; the May'26&ndash;Jun'26 transitional numbers are noted in the sheet).</li>
-      <li>Shadowfax (W.E.F 01-06-2025): per-shipment by category (A Intracity, B1 Intrastate, B2 Within-zone/Regional, C Metro/ROI/SZ, Kerala LM). The &ge;4 L shipments/month tier applies discounted rates. The separate "RVP with QC" reverse-pickup product (W.E.F 01-04-2025) is quoted via the "+ Shadowfax RVP" checkbox: CPS by RVP category (Local 35 / Regional 50 / Metro 60 / ROI 80 / SZ 90) + QC Rs 15/shipment (pass or fail); RVP category is derived from the lane's Shadowfax forward zone (Intracity&rarr;Local, Intrastate/Within-Zone&rarr;Regional, Metro&rarr;Metro, ROI&rarr;ROI, Special Zone&rarr;SZ). Liability terms are informational (max Rs 5,000 on RVP lost shipments; RVP QC liability 20% of invoice value). The "+Rs 2.5/shipment for SFX MM in Kerala" is not modeled.</li>
-      <li>Amazon: CPS per shipment plus cumulative monthly discount; add-on INR 15/kg for every full kg above 2 kg, with the same discount applied on the add-on rate.</li>
-      <li>Elastic Run: no lane column exists in the zone master, so it quotes only from warehouses with a scheme on the card &mdash; SDD (local) Rs 37 per delivered order for WH 2, 4, 10, 12, 28 and NDD&ndash;Regional Rs 40 per delivered order (no return freight). Other warehouses (incl. WH 16, 21, 25, 29, 40, 42, 45, 47, 6032) are shown as <i>not served</i> so no cost is fabricated. "Local" = the destination pin falls in the warehouse's SDD metro area (per-WH pincode prefixes in the price card); anything else on those 5 warehouses is Regional. The pre-2025 flat Rs 33/32/31 volume scheme is retired.</li>
-      <li>Not-served lanes come from the Zone Master sentinels (NA / * / blank). The weight you enter is treated as the billing/chargeable weight &mdash; no volumetric (LBH/5000) conversion is applied.</li>
-    </ul>
   </section>
 
   <section id="bulk" class="bulk" aria-label="Bulk quote">
@@ -148,7 +132,23 @@
     </div>
   </section>
 
+  <section id="assumptions" class="notes" hidden>
+    <h3>Notes</h3>
+    <ul>
+      <li>Only carriers that have a commercial sheet in the B2C workbook are quoted: Delhivery, Blue Dart (Dart Plus), DTDC, Ekart, Shadowfax, Amazon, Elastic Run. The workbook's Carrier List flags are not used.</li>
+      <li>Delhivery Surface (W.E.F 01-02-2024): forward is a flat per-shipment rate (additional weight slabs are Rs 0 on the card). Zones A/B use X/Y, which depend on the monthly volume slab: 1-3 Lakh &rarr; X=35, Y=42; &ge;3 Lakh &rarr; X=31, Y=38.5. The retired &lt;1 Lakh slab ("Existing Rate Card, Table B") is not offered. Zones C1&ndash;F are the same for every slab; RTO is Rs 0; Guwahati B_SPL is Rs 42/shipment. The SDD/NDD entries on the sheet (Delhivery_MM / Delhivery_NDD columns) are separate products and not quoted.</li>
+      <li>Blue Dart (Dart Plus): min chargeable 1 kg; then every additional 500 g slab. RTO = 70% of forward rates. Volume discounts (up to 10% on freight, by monthly-shipment tier) apply. Cash-on-delivery fee (1.2% or min INR 15) is not included &mdash; it depends on the collectible amount, not on weight. Rates valid till 31-Dec-2025.</li>
+      <li>DTDC (w.e.f 21-May-2025): flat Rs 34.9 for first 5,000 g, additional 1,000 g at Rs 0, across all categories; forward movement only. The sheet's "Siliguri DS (QUIK &amp; SDD, W.E.F Feb 2026) Rs 40" special is applied to destination pincodes in the Siliguri region (prefix 734).</li>
+      <li>Ekart: base Rs 41 for 0&ndash;5 kg then Rs 7 per 500 g, inclusive of forward, COD &amp; RTO (no separate DTO). The volume-discount table from the sheet is selectable ("From Jul'26 onwards": &ge;2,00,000/mo Rs 38, &ge;4,00,000/mo Rs 37). The May'26&ndash;Jun'26 transitional tiers are noted in the sheet but not offered here.</li>
+      <li>Shadowfax (W.E.F 01-06-2025): per-shipment by category (A Intracity Rs 33, B1 Intrastate Rs 35.5, B2 Within-zone/Regional Rs 38.5, C Metro/ROI/Special Zone Rs 42.5, Kerala Only-LM Rs 31). The &ge;4 L shipments/month tier applies discounted rates (B1 Intrastate Rs 33.5, B2 Within-zone/Regional Rs 36.5). The separate "RVP with QC" reverse-pickup product (W.E.F 01-04-2025) is quoted via the "+ Shadowfax RVP" checkbox: CPS by RVP category (Local 35 / Regional 50 / Metro 60 / ROI 80 / SZ 90) + QC Rs 15/shipment (pass or fail); RVP category is derived from the lane's Shadowfax forward zone (Intracity&rarr;Local, Intrastate/Within-Zone&rarr;Regional, Metro&rarr;Metro, ROI&rarr;ROI, Special Zone&rarr;SZ). Liability terms are informational (max Rs 5,000 on RVP lost shipments; RVP QC liability 20% of invoice value). The "+Rs 2.5/shipment for SFX MM in Kerala" is not modeled.</li>
+      <li>Amazon: CPS per shipment plus cumulative monthly discount (Rs 40 &rarr; Rs 34.4, down to 14% off). First 2 kg included, then INR 15 per full extra kg, with the same discount applied on the add-on rate.</li>
+      <li>Elastic Run: no lane column exists in the zone master, so it quotes only from the warehouses with a scheme on the card &mdash; SDD (local) Rs 37 per delivered order for WH 2, 4, 10, 12, 28 (W.E.F 01-07-2025) and NDD&ndash;Regional Rs 40 per delivered order (W.E.F 20-02-2026; no return freight, billed on delivered orders only). Other warehouses (incl. WH 16, 21, 25, 29, 40, 42, 45, 47, 6032) are shown as <i>not served</i> so no cost is fabricated. "Local" = the destination pin falls in the warehouse's SDD metro area (per-WH pincode prefixes in the price card); anything else on those 5 warehouses is Regional. The pre-2025 flat Rs 33/32/31 volume scheme is retired.</li>
+      <li>Not-served lanes come from the Zone Master sentinels (NA / * / blank). The weight you enter is treated as the billing/chargeable weight &mdash; no volumetric (LBH/5000) conversion is applied.</li>
+    </ul>
+  </section>
+
   <footer>
+    <button id="assumptions-toggle" class="btn ghost small" type="button" aria-expanded="false">Notes</button>
     <button id="rebuild" class="btn ghost small" type="button">Rebuild data from Excel</button>
     <span id="buildstat"></span>
   </footer>

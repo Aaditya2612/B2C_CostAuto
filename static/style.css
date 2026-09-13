@@ -315,7 +315,7 @@ td .ratebasis.notserved:hover { color: var(--bad); border-color: #f3c6c2; }
 .cheapest.empty { background: var(--panel2); color: var(--muted); box-shadow: none; border: 1px dashed var(--line); }
 
 /* ---------- notes ---------- */
-.notes { border-left: 4px solid var(--accent); }
+.notes { border-left: 4px solid var(--accent); scroll-margin-top: 16px; }
 .notes h3 { margin: 0 0 8px; font-size: 14px; color: #6d28d9; }
 .notes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12.5px; }
 .notes li { margin-bottom: 6px; }
@@ -385,6 +385,9 @@ footer { color: var(--muted); font-size: 12px; display: flex; gap: 14px; align-i
   gap: 10px;
   margin-top: 12px;
 }
+/* center the bulk quote form content (header stays full width) */
+.bulk-inner > .bmode-cards,
+.bulk-inner > .row { max-width: 640px; margin-left: auto; margin-right: auto; }
 .mode-card {
   display: flex;
   align-items: center;

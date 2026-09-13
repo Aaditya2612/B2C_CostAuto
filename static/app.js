@@ -68,7 +68,19 @@ function toggleBulk() {
 
 function smoothScrollTo(el) {
   if (!el) return;
-  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 16, behavior: "smooth" });
+  const start = window.scrollY;
+  const top = el.getBoundingClientRect().top + start - 16;
+  const dist = top - start;
+  if (Math.abs(dist) < 2) return;
+  const dur = 280;
+  const t0 = performance.now();
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / dur);
+    window.scrollTo(0, start + dist * ease(p));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 function fillMovement(sel) {
@@ -87,7 +99,9 @@ function toggleAssumptions() {
   const open = el.hidden;
   el.hidden = !open;
   btn.classList.toggle("active", open);
-  btn.textContent = open ? "Hide assumptions" : "Assumptions & notes";
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  btn.textContent = open ? "Hide notes" : "Notes";
+  if (open) smoothScrollTo(el);
 }
 
 function renderCarrierOptions() {
