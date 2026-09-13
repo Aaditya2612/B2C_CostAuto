@@ -45,7 +45,10 @@ async function init() {
   $("rebuild").addEventListener("click", rebuild);
   $("assumptions-toggle").addEventListener("click", toggleAssumptions);
   $("movement").addEventListener("change", () => { if (quoted) requote(); });
-  $("rvp").addEventListener("change", () => { if (quoted) requote(); });
+  $("rvp").addEventListener("change", () => {
+    if (quoted) requote();
+    else if (/^\d{6}$/.test(($("pin").value || "").replace(/[^0-9]/g, ""))) run();
+  });
   $("weight").addEventListener("change", () => { if (quoted) requote(); });
   $("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
 
@@ -324,15 +327,19 @@ function renderQuote(quote) {
         box.appendChild(d);
       }
     }
-    if (c.id === "shadowfax" && quote.rvp && quote.rvp.zone) {
+    if (c.id === "shadowfax" && quote.rvp) {
       const rv = document.createElement("div");
       rv.className = "rb-line rb-rvp";
       if (quote.rvp.served) {
         const rb = String(quote.rvp.rate_basis || "");
         const mCps = rb.match(/CPS Rs ([\d.]+)/);
         const mQc = rb.match(/QC Rs ([\d.]+)/);
-        const probe = mCps && mQc ? ` = CPS ${mCps[1]} + Rs ${mQc[1]} QC` : "";
-        rv.textContent = `Shadowfax RVP with QC (W.E.F 01-04-2025): Rs ${quote.rvp.cost.toFixed(2)} (${quote.rvp.zone})${probe}`;
+        const mCat = rb.match(/: CPS Rs [\d.]+ \(([^)]+)\)/);
+        const bits = [];
+        if (mCps) bits.push("CPS " + mCps[1] + (mCat ? " (" + mCat[1] + ")" : ""));
+        if (mQc) bits.push("QC " + mQc[1]);
+        const probe = bits.length ? "  [" + bits.join(" + ") + "]" : "";
+        rv.textContent = `Shadowfax RVP with QC (reverse pickup): Rs ${quote.rvp.cost.toFixed(2)} (${quote.rvp.zone})${probe}`;
       } else {
         rv.textContent = "Shadowfax RVP with QC: not quotable for this lane";
       }
@@ -517,6 +524,30 @@ function bulkCell(c) {
   return c && c.served && c.cost != null ? "₹" + c.cost.toFixed(2) : "—";
 }
 
+/* Fill one matrix cell: price on top, final zone on a small line below it.
+   com: carrier quote object (or null/undefined); lane has the cheapest ref. */
+function fillBulkCell(td, com, lane) {
+  td.className = "num";
+  if (com && com.served && com.cost != null) {
+    if (lane.cheapest && lane.cheapest.id === com.id) td.classList.add("bestc");
+    const price = document.createElement("div");
+    price.className = "bcell-price";
+    price.textContent = bulkCell(com);
+    td.appendChild(price);
+    if (com.final_zone) {
+      const zone = document.createElement("div");
+      zone.className = "bcell-zone";
+      zone.textContent = com.final_zone;
+      td.appendChild(zone);
+    }
+    td.title = carrierTitle(com);
+  } else {
+    td.textContent = "—";
+    td.classList.add("cellna");
+    td.title = (com && com.rate_basis) || "no rate";
+  }
+}
+
 function laneText(l) {
   if (BULK.mode === "pins") {
     const geo = l.city ? `${l.city}${l.state ? ", " + l.state : ""}` : "";
@@ -561,20 +592,10 @@ function renderMatrix(orient) {
       const td0 = document.createElement("td");
       td0.textContent = laneText(l);
       tr.appendChild(td0);
-      const best = l.cheapest;
       for (const id of carriers) {
         const c = byId[id];
         const td = document.createElement("td");
-        td.className = "num";
-        if (c && c.served && c.cost != null) {
-          if (best && best.id === id) td.classList.add("bestc");
-          td.textContent = bulkCell(c);
-          td.title = carrierTitle(c);
-        } else {
-          td.textContent = "—";
-          td.classList.add("cellna");
-          td.title = (c && c.rate_basis) || "no rate";
-        }
+        fillBulkCell(td, c, l);
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
@@ -606,16 +627,7 @@ function renderMatrix(orient) {
       for (const l of lanes) {
         const c = l.carriers.find((x) => x.id === id);
         const td = document.createElement("td");
-        td.className = "num";
-        if (c && c.served && c.cost != null) {
-          if (l.cheapest && l.cheapest.id === id) td.classList.add("bestc");
-          td.textContent = bulkCell(c);
-          td.title = carrierTitle(c);
-        } else {
-          td.textContent = "—";
-          td.classList.add("cellna");
-          td.title = (c && c.rate_basis) || "no rate";
-        }
+        fillBulkCell(td, c, l);
         tr.appendChild(td);
       }
       tbody.appendChild(tr);

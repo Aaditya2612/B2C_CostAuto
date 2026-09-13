@@ -254,6 +254,8 @@ def price_amazon(zone, weight_kg, movement, vol_tier, params):
 def price_elastic(zone, weight_kg, movement, vol_tier, params, whid, pin=None, service="standard"):
     sdd_whs = params.get("wh_sdd_37_ids") or []
     metro = params.get("metro_prefixes") or {}
+    if whid is None:
+        return None, "Elastic Run requires a warehouse (no lane in the Zone Master)"
     whid = int(whid)
 
     if service == "sdd":
@@ -354,6 +356,14 @@ def quote_carrier(carrier, zone, weight_kg, movement, opts, data):
     else:
         cost, detail = fn(zone, weight_kg, movement, vol_tier, params)
     system_zone, final_zone = resolve_zones(carrier["id"], zone, data)
+    # Elastic Run has no zone-master column; its effective final zone comes
+    # from the service actually priced (SDD local vs NDD regional).
+    if carrier["id"] == "elastic" and cost is not None:
+        _dl = (detail or "").lower()
+        if "sdd" in _dl and "regional" not in _dl:
+            final_zone = "Local"
+        elif "ndd" in _dl or "regional" in _dl:
+            final_zone = "Regional"
     base.update({
         "system_zone": system_zone,
         "final_zone": final_zone,

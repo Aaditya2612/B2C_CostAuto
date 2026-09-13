@@ -247,10 +247,14 @@ def quote():
 
     # Optional Shadowfax RVP (reverse pickup) quote on the same lane.
     rvp = None
-    if body.get("rvp") and rec:
-        zone = rec["shadowfax"]
-        cost, detail = price_shadowfax_rvp(zone, DATA["price_cards"]["shadowfax"])
-        rvp = {"served": cost is not None, "zone": zone, "cost": cost, "rate_basis": detail}
+    if body.get("rvp"):
+        if rec:
+            zone = rec["shadowfax"]
+            cost, detail = price_shadowfax_rvp(zone, DATA["price_cards"]["shadowfax"])
+            rvp = {"served": cost is not None, "zone": zone, "cost": cost, "rate_basis": detail}
+        else:
+            rvp = {"served": False, "zone": None, "cost": None,
+                   "rate_basis": "No lane in the Zone Master for this origin/destination"}
 
     return jsonify({"carriers": results, "cheapest": cheapest,
                     "movement": movement, "rvp": rvp})
