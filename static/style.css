@@ -181,6 +181,7 @@ select.inp { min-width: 190px; width: 100%; }
   padding: 12px 18px;
   margin-bottom: 16px;
   box-shadow: var(--shadow);
+  scroll-margin-top: 18px;
 }
 .route { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; flex: 0 1 auto; }
 .rnode { display: flex; flex-direction: column; gap: 1px; }
@@ -328,14 +329,109 @@ footer { color: var(--muted); font-size: 12px; display: flex; gap: 14px; align-i
   .volgrid { grid-template-columns: 1fr; }
   .inp, select.inp { min-width: 0; }
   table { display: block; overflow-x: auto; }
+  .bmode-cards { grid-template-columns: 1fr; }
 }
 
 /* ---------- bulk quote ---------- */
-.bulk { border-top: 4px solid var(--accent); }
-.bulk-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
-.bulk-head .volhead { margin: 0; }
-.bvariant { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+.bulk { border-top: 4px solid var(--accent); margin-top: 26px; }
+.bulk-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: transparent;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.bulk-toggle .bt-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.bt-title { font-size: 18px; font-weight: 800; color: #4c1d95; letter-spacing: .2px; }
+.bt-sub { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.bt-chev {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  color: #6d28d9;
+  transition: background .2s ease, color .2s ease, transform .3s ease;
+}
+.bt-chev svg { width: 16px; height: 16px; transition: transform .3s ease; }
+.bulk-toggle:hover .bt-chev { background: var(--accent-soft); border-color: #d4c5f5; }
+.bulk.open .bt-chev { background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: #fff; border-color: transparent; box-shadow: 0 4px 10px rgba(124, 58, 237, .30); }
+.bulk.open .bt-chev svg { transform: rotate(180deg); }
+
+/* smooth reveal of the whole bulk panel */
+.bulk-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows .38s cubic-bezier(.2, .75, .25, 1), opacity .3s ease;
+}
+.bulk-body > .bulk-inner { overflow: hidden; min-height: 0; }
+.bulk.open .bulk-body { grid-template-rows: 1fr; opacity: 1; }
+
+/* mode picker cards */
+.bmode-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: var(--panel2);
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--txt);
+  transition: border-color .15s ease, background .2s ease, box-shadow .15s ease, transform .08s ease;
+}
+.mode-card:hover { border-color: var(--accent-2); box-shadow: 0 5px 14px rgba(124, 58, 237, .12); }
+.mode-card:active { transform: translateY(1px); }
+.mode-card.active {
+  background: linear-gradient(120deg, #3f1a8a, #7c3aed);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8px 18px rgba(124, 58, 237, .30);
+}
+.mc-arrow {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  background: var(--accent-soft);
+  color: #6d28d9;
+  transition: background .2s ease, color .2s ease;
+}
+.mode-card.active .mc-arrow { background: rgba(255, 255, 255, .18); color: #fff; }
+.mc-txt b { display: block; font-size: 13.5px; }
+.mc-txt i { display: block; font-style: normal; font-size: 11.5px; opacity: .75; margin-top: 2px; }
+.mode-card.active .mc-txt i { opacity: .85; }
+.mode-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* gentle slide-in when switching between the two mode forms */
+.bvariant { animation: bswap .3s ease both; }
 .bvariant[hidden] { display: none !important; }
+@keyframes bswap { from { opacity: 0; transform: translateY(5px); } }
+
 .bvariant label { max-width: 420px; }
 .vsub { font-weight: 600; color: var(--muted); font-style: normal; font-size: 11px; }
 .inp.txta { min-width: 300px; resize: vertical; font-family: inherit; line-height: 1.5; }

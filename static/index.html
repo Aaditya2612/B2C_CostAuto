@@ -32,67 +32,13 @@
       </label>
     </div>
     <div class="row ctrl">
-      <button id="load" class="btn primary" type="button">Load lane + Calculate</button>
+      <button id="load" class="btn primary" type="button">Load lane + Continue</button>
     </div>
   </section>
 
   <section id="volrow" class="volset">
     <h2 class="volhead">Carrier settings <span class="volsub">(volume slab / service)</span></h2>
     <div class="volgrid" id="volgrid"></div>
-  </section>
-
-  <section id="bulk" class="bulk">
-    <div class="bulk-head">
-      <h2 class="volhead">Bulk quote <span class="volsub">(many lanes at once &mdash; uses the volume slabs / services above)</span></h2>
-      <div class="seg" id="bmode">
-        <button type="button" class="seg-btn active" data-mode="pins">1 warehouse &rarr; many pincodes</button>
-        <button type="button" class="seg-btn" data-mode="whs">many warehouses &rarr; 1 pincode</button>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="bvariant" id="bv_pins">
-        <label>Origin WH
-          <select id="bwh" class="inp"></select>
-        </label>
-        <label>Destination pincodes <span class="vsub">one 6-digit pin per line</span>
-          <textarea id="bpins" class="inp txta" rows="7" placeholder="400607&#10;421302&#10;560001"></textarea>
-        </label>
-      </div>
-      <div class="bvariant" id="bv_whs" hidden>
-        <label>Warehouses <span class="vsub">click a chip to toggle it on/off</span>
-          <div id="bwhs" class="whpick" role="group" aria-label="Warehouses"></div>
-          <span id="bwhs-count" class="whcount">0 selected</span>
-        </label>
-        <label>Destination pincode
-          <input id="bpin" class="inp" type="text" inputmode="numeric" placeholder="e.g. 400607" />
-        </label>
-      </div>
-      <label>Weight (kg)
-        <input id="bweight" class="inp" type="number" step="0.001" min="0" value="0.5" />
-      </label>
-      <label>Movement
-        <select id="bmovement" class="inp"></select>
-      </label>
-    </div>
-
-    <div class="row bulk-actions">
-      <button id="bload" class="btn primary" type="button">Run bulk quote</button>
-      <button id="bexport" class="btn ghost small" type="button" hidden>Export CSV</button>
-      <span id="bstat" class="bstat"></span>
-    </div>
-
-    <div id="bresults" class="bresults" hidden>
-      <div class="bresult-bar">
-        <span id="bsummary" class="bsummary"></span>
-        <div class="seg" id="borient">
-          <button type="button" class="seg-btn active" data-orient="lanes">Rows = lanes</button>
-          <button type="button" class="seg-btn" data-orient="carriers">Rows = carriers</button>
-        </div>
-      </div>
-      <p id="bskip" class="bskip" hidden></p>
-      <div class="bwrap" id="bwrap"></div>
-    </div>
   </section>
 
   <section id="laneinfo" class="lane" hidden></section>
@@ -126,6 +72,80 @@
       <li>Elastic Run: no lane column exists in the zone master, so it quotes only from warehouses with a scheme on the card &mdash; SDD (local) Rs 37 per delivered order for WH 2, 4, 10, 12, 28 and NDD&ndash;Regional Rs 40 per delivered order (no return freight). Other warehouses (incl. WH 16, 21, 25, 29, 40, 42, 45, 47, 6032) are shown as <i>not served</i> so no cost is fabricated. "Local" = the destination pin falls in the warehouse's SDD metro area (per-WH pincode prefixes in the price card); anything else on those 5 warehouses is Regional. The pre-2025 flat Rs 33/32/31 volume scheme is retired.</li>
       <li>Not-served lanes come from the Zone Master sentinels (NA / * / blank). The weight you enter is treated as the billing/chargeable weight &mdash; no volumetric (LBH/5000) conversion is applied.</li>
     </ul>
+  </section>
+
+  <section id="bulk" class="bulk" aria-label="Bulk quote">
+    <button id="bulk-toggle" class="bulk-toggle" type="button" aria-expanded="false" aria-controls="bulk-body">
+      <span class="bt-head">
+        <span class="bt-title">Bulk Quote</span>
+        <span class="bt-sub">quote many lanes at once &mdash; uses the volume slabs / services above</span>
+      </span>
+      <span class="bt-chev" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </button>
+
+    <div id="bulk-body" class="bulk-body">
+      <div class="bulk-inner">
+
+        <div class="bmode-cards" id="bmode" role="group" aria-label="Bulk quote mode">
+          <button type="button" class="mode-card active" data-mode="pins" aria-pressed="true">
+            <span class="mc-arrow" aria-hidden="true">&rarr;</span>
+            <span class="mc-txt"><b>1 warehouse &rarr; many pincodes</b><i>one origin WH + a list of destination pins</i></span>
+          </button>
+          <button type="button" class="mode-card" data-mode="whs" aria-pressed="false">
+            <span class="mc-arrow" aria-hidden="true">&larr;</span>
+            <span class="mc-txt"><b>many warehouses &rarr; 1 pincode</b><i>pick origin WHs + one destination pin</i></span>
+          </button>
+        </div>
+
+        <div class="row bvariant" id="bv_pins">
+          <label>Origin WH
+            <select id="bwh" class="inp"></select>
+          </label>
+          <label>Destination pincodes <span class="vsub">one 6-digit pin per line</span>
+            <textarea id="bpins" class="inp txta" rows="7" placeholder="400607&#10;421302&#10;560001"></textarea>
+          </label>
+        </div>
+        <div class="row bvariant" id="bv_whs" hidden>
+          <label>Warehouses <span class="vsub">click a chip to toggle it on/off</span>
+            <div id="bwhs" class="whpick" role="group" aria-label="Warehouses"></div>
+            <span id="bwhs-count" class="whcount">0 selected</span>
+          </label>
+          <label>Destination pincode
+            <input id="bpin" class="inp" type="text" inputmode="numeric" placeholder="e.g. 400607" />
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Weight (kg)
+            <input id="bweight" class="inp" type="number" step="0.001" min="0" value="0.5" />
+          </label>
+          <label>Movement
+            <select id="bmovement" class="inp"></select>
+          </label>
+        </div>
+
+        <div class="row bulk-actions">
+          <button id="bload" class="btn primary" type="button">Run bulk quote</button>
+          <button id="bexport" class="btn ghost small" type="button" hidden>Export CSV</button>
+          <span id="bstat" class="bstat"></span>
+        </div>
+
+        <div id="bresults" class="bresults" hidden>
+          <div class="bresult-bar">
+            <span id="bsummary" class="bsummary"></span>
+            <div class="seg" id="borient">
+              <button type="button" class="seg-btn active" data-orient="lanes">Rows = lanes</button>
+              <button type="button" class="seg-btn" data-orient="carriers">Rows = carriers</button>
+            </div>
+          </div>
+          <p id="bskip" class="bskip" hidden></p>
+          <div class="bwrap" id="bwrap"></div>
+        </div>
+
+      </div>
+    </div>
   </section>
 
   <footer>

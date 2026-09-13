@@ -52,12 +52,23 @@ async function init() {
   $("weight").addEventListener("change", () => { if (quoted) requote(); });
   $("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
 
+  $("bulk-toggle").addEventListener("click", toggleBulk);
   $("bmode").addEventListener("click", onBulkMode);
   $("borient").addEventListener("click", onBulkOrient);
   $("bload").addEventListener("click", runBulk);
   $("bexport").addEventListener("click", exportBulkCsv);
   $("bpins").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) runBulk(); });
   $("bpin").addEventListener("keydown", (e) => { if (e.key === "Enter") runBulk(); });
+}
+
+function toggleBulk() {
+  const open = $("bulk").classList.toggle("open");
+  $("bulk-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function smoothScrollTo(el) {
+  if (!el) return;
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 16, behavior: "smooth" });
 }
 
 function fillMovement(sel) {
@@ -172,6 +183,7 @@ async function run() {
 
   // 2) quote on the lane's master zones
   await requote();
+  smoothScrollTo($("laneinfo"));
   $("pin").setCustomValidity("");
 }
 
@@ -427,10 +439,14 @@ function buildBulk() {
 }
 
 function onBulkMode(e) {
-  const btn = e.target.closest(".seg-btn");
+  const btn = e.target.closest(".mode-card");
   if (!btn) return;
   const mode = btn.dataset.mode;
-  $("bmode").querySelectorAll(".seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
+  $("bmode").querySelectorAll(".mode-card").forEach((b) => {
+    const on = b === btn;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
   $("bv_pins").hidden = mode !== "pins";
   $("bv_whs").hidden = mode !== "whs";
 }
@@ -443,7 +459,7 @@ function onBulkOrient(e) {
 }
 
 function bulkPayload() {
-  const mode = $("bmode").querySelector(".seg-btn.active").dataset.mode;
+  const mode = $("bmode").querySelector(".mode-card.active").dataset.mode;
   const body = {
     mode,
     weight_kg: parseFloat($("bweight").value) || 0,
