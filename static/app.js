@@ -495,11 +495,24 @@ function renderBulk() {
   renderMatrix($("borient").querySelector(".seg-btn.active").dataset.orient);
 }
 
-function buildBulkSummary() {
-  const lanes = BULK.lanes;
-  const served = lanes.filter((l) => l.found && l.carriers.some((c) => c.served)).length;
+function bulkCoverage() {
+  const counts = {};
   let cells = 0;
-  for (const l of lanes) cells += l.carriers.filter((c) => c.served).length;
+  for (const l of BULK.lanes) {
+    for (const c of l.carriers) {
+      if (c.served) {
+        counts[c.id] = (counts[c.id] || 0) + 1;
+        cells += 1;
+      }
+    }
+  }
+  return { counts, cells };
+}
+
+function buildBulkSummary() {
+  const { counts, cells } = bulkCoverage();
+  const carrierIds = BULK.carrier_order;
+  const quoted = Object.keys(counts).length;
   let txt = "";
   if (BULK.mode === "pins") {
     const f = BULK.fixed;
@@ -508,15 +521,7 @@ function buildBulkSummary() {
     const f = BULK.fixed;
     txt += `To pin ${f.pin} — `;
   }
-  txt += `${lanes.length} lanes · ${served} served by ≥1 carrier · ${cells} carrier cells priced`;
-  let best = null;
-  for (const l of lanes) {
-    if (!l.cheapest) continue;
-    if (!best || l.cheapest.cost < best.cost) best = { ...l.cheapest, whid: l.whid, pin: l.pin_6 };
-  }
-  if (best) {
-    txt += ` · cheapest overall: ${best.name} ₹${best.cost.toFixed(2)} on WH${best.whid} → ${best.pin}`;
-  }
+  txt += `${BULK.lanes.length} lanes · ${cells} carrier prices · ${quoted} of ${carrierIds.length} carriers quoted`;
   $("bsummary").textContent = txt;
 }
 
@@ -565,6 +570,7 @@ function renderMatrix(orient) {
   const host = $("bwrap");
   const lanes = BULK.lanes;
   const carriers = BULK.carrier_order;
+  const { counts } = bulkCoverage();
   const table = document.createElement("table");
   table.className = "bulkmat";
 
@@ -601,6 +607,24 @@ function renderMatrix(orient) {
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
+
+    const tfoot = document.createElement("tfoot");
+    const ftr = document.createElement("tr");
+    const fc0 = document.createElement("td");
+    fc0.className = "cov-label";
+    fc0.textContent = "Coverage";
+    fc0.title = "Lanes served by each carrier";
+    ftr.appendChild(fc0);
+    for (const id of carriers) {
+      const n = counts[id] || 0;
+      const td = document.createElement("td");
+      td.className = "num cov";
+      td.textContent = BULK.mode === "pins" ? `${n}/${lanes.length} pins` : `${n}/${lanes.length} WHs`;
+      td.title = `${CARRIER_SHORT[id] || id} quoted on ${n} of ${lanes.length} lanes`;
+      ftr.appendChild(td);
+    }
+    tfoot.appendChild(ftr);
+    table.appendChild(tfoot);
   } else {
     const thead = document.createElement("thead");
     const tr = document.createElement("tr");
@@ -614,6 +638,11 @@ function renderMatrix(orient) {
       th.title = laneText(l);
       tr.appendChild(th);
     }
+    const thCov = document.createElement("th");
+    thCov.className = "num covth";
+    thCov.textContent = "Coverage";
+    thCov.title = "Lanes served by each carrier";
+    tr.appendChild(thCov);
     thead.appendChild(tr);
     table.appendChild(thead);
 
@@ -630,6 +659,12 @@ function renderMatrix(orient) {
         fillBulkCell(td, c, l);
         tr.appendChild(td);
       }
+      const tc = document.createElement("td");
+      tc.className = "num cov";
+      const n = counts[id] || 0;
+      tc.textContent = `${n}/${lanes.length}`;
+      tc.title = `${CARRIER_SHORT[id] || id} quoted on ${n} of ${lanes.length} lanes`;
+      tr.appendChild(tc);
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
