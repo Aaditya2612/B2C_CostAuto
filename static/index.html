@@ -62,7 +62,7 @@
     <button id="bulk-toggle" class="bulk-toggle" type="button" aria-expanded="false" aria-controls="bulk-body">
       <span class="bt-head">
         <span class="bt-title">Bulk Quote</span>
-        <span class="bt-sub">quote many lanes at once &mdash; uses the volume slabs / services above</span>
+        <span class="bt-sub">Locate Multiple Lanes (using the service settings above).</span>
       </span>
       <span class="bt-chev" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -74,31 +74,33 @@
 
         <div class="bmode-cards" id="bmode" role="group" aria-label="Bulk quote mode">
           <button type="button" class="mode-card active" data-mode="pins" aria-pressed="true">
-            <span class="mc-arrow" aria-hidden="true">&rarr;</span>
-            <span class="mc-txt"><b>1 warehouse &rarr; many pincodes</b><i>one origin WH + a list of destination pins</i></span>
+            <span class="mc-txt"><b>1 Warehouse &rarr; Many Pincodes</b><i>One Origin WH + A List Of Destination Pincodes</i></span>
           </button>
           <button type="button" class="mode-card" data-mode="whs" aria-pressed="false">
-            <span class="mc-arrow" aria-hidden="true">&larr;</span>
-            <span class="mc-txt"><b>many warehouses &rarr; 1 pincode</b><i>pick origin WHs + one destination pin</i></span>
+            <span class="mc-txt"><b>Many Warehouses &rarr; 1 Pincode</b><i>Pick Origin WHs + One Destination Pincode</i></span>
           </button>
         </div>
 
-        <div class="row bvariant" id="bv_pins">
-          <label>Origin WH
-            <select id="bwh" class="inp"></select>
-          </label>
-          <label>Destination pincodes <span class="vsub">one 6-digit pin per line</span>
-            <textarea id="bpins" class="inp txta" rows="7" placeholder="400607&#10;421302&#10;560001"></textarea>
-          </label>
+        <div class="bvariant" id="bv_pins">
+          <div class="bmode-form">
+            <label>Origin WH
+              <select id="bwh" class="inp"></select>
+            </label>
+            <label>Destination pincodes <span class="vsub">One 6-digit pin per line</span>
+              <textarea id="bpins" class="inp txta" rows="7" placeholder="400607&#10;421302&#10;560001"></textarea>
+            </label>
+          </div>
         </div>
-        <div class="row bvariant" id="bv_whs" hidden>
-          <label>Warehouses <span class="vsub">click a chip to toggle it on/off</span>
-            <div id="bwhs" class="whpick" role="group" aria-label="Warehouses"></div>
-            <span id="bwhs-count" class="whcount">0 selected</span>
-          </label>
-          <label>Destination pincode
-            <input id="bpin" class="inp" type="text" inputmode="numeric" placeholder="e.g. 400607" />
-          </label>
+        <div class="bvariant" id="bv_whs" hidden>
+          <div class="bmode-form">
+            <label>Warehouses
+              <div id="bwhs" class="whpick" role="group" aria-label="Warehouses"></div>
+              <span id="bwhs-count" class="whcount">0 selected</span>
+            </label>
+            <label>Destination pincode
+              <input id="bpin" class="inp" type="text" inputmode="numeric" placeholder="e.g. 400607" />
+            </label>
+          </div>
         </div>
 
         <div class="row">
