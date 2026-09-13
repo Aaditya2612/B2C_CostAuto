@@ -389,6 +389,8 @@ footer { color: var(--muted); font-size: 12px; display: flex; gap: 14px; align-i
 .bulk-inner > .bmode-cards,
 .bulk-inner > .row { max-width: 640px; margin-left: auto; margin-right: auto; }
 .bmode-form { display: flex; flex-direction: column; gap: 15px; max-width: 640px; margin: 0 auto; }
+.center-field { max-width: 340px; width: 100%; margin: 0 auto; }
+.center-field .inp { width: 100%; }
 .bvariant + .row { margin-top: 18px; }
 .mode-card {
   display: flex;
