@@ -391,16 +391,14 @@ footer { color: var(--muted); font-size: 12px; display: flex; gap: 14px; align-i
 .bmode-form { display: flex; flex-direction: column; gap: 15px; max-width: 640px; margin: 0 auto; }
 .center-field { max-width: 340px; width: 100%; margin: 0 auto; }
 .center-field .inp { width: 100%; }
-/* Many Warehouses -> 1 Pincode: right-align the form flush to the tab's right margin */
+/* Many Warehouses -> 1 Pincode: right-align content to the mode-card's right edge
+   (form stays in the same centered 640px column as the mode cards) */
 #bv_whs .bmode-form {
-  margin-right: 0;
   align-items: flex-end;
   text-align: right;
 }
 #bv_whs .whpick { justify-content: flex-end; }
 #bv_whs .center-field { margin: 0; }
-/* keep the shared Weight/Movement row aligned with the right-ragged form in this mode */
-#bv_whs:not([hidden]) + .row { margin-right: 0; }
 .bvariant + .row { margin-top: 18px; }
 .mode-card {
   display: flex;
