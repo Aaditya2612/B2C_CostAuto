@@ -392,15 +392,13 @@ footer { color: var(--muted); font-size: 12px; display: flex; gap: 14px; align-i
 .center-field { max-width: 340px; width: 100%; margin: 0 auto; }
 .center-field .inp { width: 100%; }
 /* Many Warehouses -> 1 Pincode: content right-aligned to the mode-card's right edge.
-   Warehouses + Destination Pincode share one row to collapse vertical length. */
+   Warehouses get the full form width so chips wrap to a compact 3 rows. */
 #bv_whs .bmode-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 15px;
-  align-items: end;
+  align-items: flex-end;
   text-align: right;
 }
-#bv_whs .whpick { justify-content: flex-end; }
+#bv_whs .bmode-form > label:first-of-type { width: 100%; max-width: 640px; }
+#bv_whs .whpick { justify-content: flex-end; width: 100%; max-width: 640px; }
 #bv_whs .center-field { margin: 0; }
 /* right-align the shared Weight/Movement row in this mode (Run button row is untouched) */
 #bv_whs:not([hidden]) + .row { justify-content: flex-end; }
@@ -499,6 +497,5 @@ footer { color: var(--muted); font-size: 12px; display: flex; gap: 14px; align-i
   font-size: 10.5px;
 }
 @media (max-width: 640px) {
-  #bv_whs .bmode-form { grid-template-columns: 1fr; }
-  #bv_whs:not([hidden]) + .row { justify-content: flex-start; }
+  #bv_whs .whpick { max-width: 100%; }
 }
